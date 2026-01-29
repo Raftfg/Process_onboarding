@@ -1,0 +1,174 @@
+# MedKey - Système d'Onboarding
+
+Système d'onboarding réutilisable pour MedKey permettant de créer automatiquement des sous-domaines et bases de données pour chaque nouvel hôpital.
+
+## 🚀 Installation
+
+### Prérequis
+- PHP >= 8.1
+- Composer
+- MySQL/MariaDB
+- Extension PDO MySQL
+
+### Étapes d'installation
+
+1. **Installer les dépendances** :
+```bash
+composer install
+```
+
+2. **Copier le fichier `.env.example` vers `.env`** :
+```bash
+cp .env.example .env
+```
+
+3. **Générer la clé d'application** :
+```bash
+php artisan key:generate
+```
+
+4. **Configurer la base de données dans `.env`** :
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=onboarding
+DB_USERNAME=root
+DB_PASSWORD=votre_mot_de_passe
+
+# Credentials root MySQL pour créer les bases de données
+DB_ROOT_USERNAME=root
+DB_ROOT_PASSWORD=votre_mot_de_passe_root
+```
+
+5. **Exécuter les migrations** :
+```bash
+php artisan migrate
+```
+
+6. **Configurer le mail (optionnel)** :
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=votre_username
+MAIL_PASSWORD=votre_password
+MAIL_FROM_ADDRESS="noreply@medkey.com"
+MAIL_FROM_NAME="MedKey"
+```
+
+7. **Démarrer le serveur de développement** :
+```bash
+php artisan serve
+```
+
+Accédez à `http://localhost:8000` pour commencer l'onboarding.
+
+## ⚙️ Configuration
+
+### Variables d'environnement importantes
+
+- `SUBDOMAIN_BASE_DOMAIN` : Domaine de base pour les sous-domaines (ex: medkey.local)
+- `SUBDOMAIN_WEB_ROOT` : Chemin racine web pour les sous-domaines
+- `DB_ROOT_USERNAME` : Nom d'utilisateur root MySQL pour créer les bases de données
+- `DB_ROOT_PASSWORD` : Mot de passe root MySQL
+
+### Configuration des sous-domaines
+
+Voir le fichier `SUBDOMAIN_SETUP.md` pour les instructions détaillées sur la configuration Apache/Nginx et DNS.
+
+## ✨ Fonctionnalités
+
+1. **Page de bienvenue** : Accueil avec bouton "Démarrer"
+2. **Étape 1** : Saisie des informations de l'hôpital
+   - Nom de l'hôpital (obligatoire)
+   - Adresse
+   - Téléphone
+   - Email
+3. **Étape 2** : Saisie des informations de l'administrateur
+   - Prénom et nom
+   - Email administrateur
+   - Mot de passe (minimum 8 caractères)
+4. **Traitement automatique** : 
+   - Création automatique de la base de données
+   - Génération du sous-domaine
+   - Envoi d'email de bienvenue à l'administrateur
+   - Redirection vers le sous-domaine avec message de bienvenue
+
+## 📁 Structure du projet
+
+```
+app/
+├── Http/
+│   ├── Controllers/
+│   │   ├── Api/
+│   │   │   └── OnboardingApiController.php  # API pour le traitement
+│   │   ├── OnboardingController.php        # Contrôleur pour les vues
+│   │   └── WelcomeController.php          # Page de bienvenue
+│   └── ...
+├── Mail/
+│   └── OnboardingWelcomeMail.php           # Email de bienvenue
+├── Models/
+│   └── OnboardingSession.php               # Modèle pour les sessions
+└── Services/
+    └── OnboardingService.php               # Logique métier
+
+resources/
+└── views/
+    ├── layouts/
+    │   └── app.blade.php                   # Layout principal
+    ├── onboarding/
+    │   ├── welcome.blade.php               # Page 1: Bienvenue
+    │   ├── step1.blade.php                 # Page 2: Infos hôpital
+    │   └── step2.blade.php                 # Page 3: Infos admin
+    ├── welcome.blade.php                   # Page de bienvenue sous-domaine
+    └── emails/
+        └── onboarding-welcome.blade.php    # Template email
+
+routes/
+├── web.php                                 # Routes web
+└── api.php                                 # Routes API
+```
+
+## 🎨 Design
+
+Le système utilise un design moderne avec :
+- Interface responsive
+- Animations fluides
+- Indicateur de progression
+- Écran de chargement pendant le traitement
+- Design gradient moderne (violet/bleu)
+
+## 🔒 Sécurité
+
+- Validation des données côté serveur
+- Protection CSRF
+- Mots de passe minimum 8 caractères avec confirmation
+- Validation des emails
+- Sessions sécurisées
+
+## 📝 Notes importantes
+
+- **Production** : Vous devrez implémenter la création réelle des vhosts Apache/Nginx (voir `SUBDOMAIN_SETUP.md`)
+- **DNS** : La gestion DNS doit être configurée selon votre infrastructure
+- **Base de données** : Les bases de données sont créées avec le préfixe `medkey_`
+- **Sous-domaines** : Les sous-domaines sont générés à partir du nom de l'hôpital (slugifié)
+
+## 🐛 Dépannage
+
+### Erreur de création de base de données
+- Vérifiez que `DB_ROOT_USERNAME` et `DB_ROOT_PASSWORD` sont corrects
+- Assurez-vous que l'utilisateur MySQL a les droits de création de bases de données
+
+### Email non envoyé
+- Vérifiez la configuration SMTP dans `.env`
+- Pour le développement, utilisez Mailtrap ou un service similaire
+
+### Sous-domaine non accessible
+- Vérifiez la configuration Apache/Nginx
+- Ajoutez l'entrée dans `/etc/hosts` pour le développement local
+- Voir `SUBDOMAIN_SETUP.md` pour plus de détails
+
+## 📄 Licence
+
+MIT
