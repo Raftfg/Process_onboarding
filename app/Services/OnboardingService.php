@@ -6,12 +6,26 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Config;
 use App\Mail\OnboardingWelcomeMail;
 use App\Models\OnboardingSession;
+use App\Models\User;
+use App\Services\TenantService;
+use App\Services\WebhookService;
 
 class OnboardingService
 {
+    protected $tenantService;
+    protected $webhookService;
+
+    public function __construct(TenantService $tenantService, WebhookService $webhookService = null)
+    {
+        $this->tenantService = $tenantService;
+        $this->webhookService = $webhookService ?? app(WebhookService::class);
+    }
+
     public function processOnboarding(array $data)
     {
         try {
@@ -24,20 +38,55 @@ class OnboardingService
             // Créer le sous-domaine
             $this->createSubdomain($subdomain);
             
-            // Enregistrer la session d'onboarding
+            // Enregistrer la session d'onboarding (dans la base principale)
             $this->saveOnboardingSession($data, $subdomain, $databaseName);
+            
+            // Basculer vers la base du tenant
+            $this->tenantService->switchToTenantDatabase($databaseName);
+            
+            // Exécuter les migrations dans la base du tenant
+            $this->runMigrationsInTenantDatabase();
+            
+            // Créer l'utilisateur administrateur dans la base du tenant
+            $user = $this->createAdminUser($data['step2'], $data['step1']['hospital_name']);
+            
+            // Revenir à la base principale
+            Config::set('database.default', 'mysql');
+            DB::purge('tenant');
             
             // Envoyer l'email
             $this->sendWelcomeEmail($data['step2'], $subdomain);
             
-            return [
+            $result = [
                 'subdomain' => $subdomain,
                 'database' => $databaseName,
                 'url' => $this->getSubdomainUrl($subdomain),
-                'admin_email' => $data['step2']['admin_email']
+                'admin_email' => $data['step2']['admin_email'],
+                'user_id' => $user->id
             ];
+
+            // Déclencher le webhook d'onboarding complété
+            $this->webhookService->trigger('onboarding.completed', [
+                'subdomain' => $subdomain,
+                'database_name' => $databaseName,
+                'hospital_name' => $data['step1']['hospital_name'],
+                'admin_email' => $data['step2']['admin_email'],
+                'url' => $result['url'],
+            ]);
+
+            return $result;
         } catch (\Exception $e) {
             Log::error('Erreur dans processOnboarding: ' . $e->getMessage());
+            
+            // Déclencher le webhook d'échec
+            $this->webhookService->trigger('onboarding.failed', [
+                'error' => $e->getMessage(),
+                'hospital_name' => $data['step1']['hospital_name'] ?? null,
+            ]);
+            
+            // S'assurer de revenir à la base principale en cas d'erreur
+            Config::set('database.default', 'mysql');
+            DB::purge('tenant');
             throw $e;
         }
     }
@@ -123,9 +172,103 @@ class OnboardingService
 
     protected function getSubdomainUrl(string $subdomain): string
     {
+        // En développement local, utiliser le domaine principal avec un paramètre
+        // car le fichier hosts Windows ne supporte pas les wildcards DNS
+        if (config('app.env') === 'local') {
+            $baseUrl = config('app.url', 'http://127.0.0.1:8000');
+            
+            // S'assurer que l'URL inclut le port si on est en local
+            // Si l'URL ne contient pas de port, ajouter :8000 par défaut
+            if (parse_url($baseUrl, PHP_URL_PORT) === null) {
+                // Si c'est localhost ou 127.0.0.1 sans port, ajouter le port 8000
+                $parsedUrl = parse_url($baseUrl);
+                $host = $parsedUrl['host'] ?? '127.0.0.1';
+                $scheme = $parsedUrl['scheme'] ?? 'http';
+                $baseUrl = "{$scheme}://{$host}:8000";
+            }
+            
+            return "{$baseUrl}/welcome?subdomain={$subdomain}";
+        }
+        
+        // En production, utiliser le vrai sous-domaine
         $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
-        $protocol = config('app.env') === 'local' ? 'http' : 'https';
-        return "{$protocol}://{$subdomain}.{$baseDomain}";
+        return "https://{$subdomain}.{$baseDomain}";
+    }
+
+    protected function runMigrationsInTenantDatabase(): void
+    {
+        try {
+            // Exécuter les migrations dans la base du tenant
+            // Utiliser DB directement pour créer les tables nécessaires
+            $connection = DB::connection('tenant');
+            
+            // Créer la table sessions
+            $connection->statement("
+                CREATE TABLE IF NOT EXISTS `sessions` (
+                    `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `user_id` bigint(20) unsigned DEFAULT NULL,
+                    `ip_address` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                    `user_agent` text COLLATE utf8mb4_unicode_ci,
+                    `payload` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `last_activity` int(11) NOT NULL,
+                    PRIMARY KEY (`id`),
+                    KEY `sessions_user_id_index` (`user_id`),
+                    KEY `sessions_last_activity_index` (`last_activity`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ");
+            
+            // Créer la table users
+            $connection->statement("
+                CREATE TABLE IF NOT EXISTS `users` (
+                    `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                    `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `email_verified_at` timestamp NULL DEFAULT NULL,
+                    `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `remember_token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                    `created_at` timestamp NULL DEFAULT NULL,
+                    `updated_at` timestamp NULL DEFAULT NULL,
+                    PRIMARY KEY (`id`),
+                    UNIQUE KEY `users_email_unique` (`email`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ");
+            
+            Log::info("Migrations exécutées dans la base du tenant");
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de l'exécution des migrations: " . $e->getMessage());
+            throw new \Exception("Impossible d'exécuter les migrations: " . $e->getMessage());
+        }
+    }
+
+    protected function createAdminUser(array $adminData, string $hospitalName): User
+    {
+        try {
+            // Vérifier que nous sommes bien sur la base du tenant
+            $currentDatabase = DB::connection()->getDatabaseName();
+            Log::info("Création utilisateur dans la base: {$currentDatabase}");
+            
+            // Vérifier si l'utilisateur existe déjà dans la base du tenant
+            $user = User::where('email', $adminData['admin_email'])->first();
+            
+            if (!$user) {
+                // Créer le nouvel utilisateur dans la base du tenant
+                $user = User::create([
+                    'name' => $adminData['admin_first_name'] . ' ' . $adminData['admin_last_name'],
+                    'email' => $adminData['admin_email'],
+                    'password' => Hash::make($adminData['admin_password']),
+                    'email_verified_at' => now(),
+                ]);
+                
+                Log::info("Utilisateur administrateur créé dans la base du tenant: {$adminData['admin_email']}");
+            } else {
+                Log::info("Utilisateur existe déjà: {$adminData['admin_email']}");
+            }
+            
+            return $user;
+        } catch (\Exception $e) {
+            Log::error("Erreur création utilisateur: " . $e->getMessage());
+            throw new \Exception("Impossible de créer l'utilisateur: " . $e->getMessage());
+        }
     }
 
     protected function sendWelcomeEmail(array $adminData, string $subdomain): void

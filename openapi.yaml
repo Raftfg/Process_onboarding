@@ -1,0 +1,331 @@
+openapi: 3.0.3
+info:
+  title: MedKey Onboarding API
+  description: API pour l'intégration du microservice d'onboarding multi-tenant MedKey
+  version: 1.0.0
+  contact:
+    name: Support MedKey
+    email: support@medkey.com
+
+servers:
+  - url: https://onboarding.medkey.com/api
+    description: Production
+  - url: http://localhost:8000/api
+    description: Développement local
+
+tags:
+  - name: Onboarding
+    description: Gestion de l'onboarding des tenants
+  - name: Tenant
+    description: Informations sur les tenants
+  - name: Webhooks
+    description: Gestion des webhooks
+
+paths:
+  /onboarding/create:
+    post:
+      tags:
+        - Onboarding
+      summary: Créer un nouveau tenant
+      description: Crée un nouveau tenant avec une base de données isolée et un sous-domaine unique
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - hospital
+                - admin
+              properties:
+                hospital:
+                  type: object
+                  required:
+                    - name
+                  properties:
+                    name:
+                      type: string
+                      example: Hôpital Central
+                    address:
+                      type: string
+                      nullable: true
+                      example: 123 Rue de la Santé, Paris
+                    phone:
+                      type: string
+                      nullable: true
+                      example: "+33 1 23 45 67 89"
+                    email:
+                      type: string
+                      format: email
+                      nullable: true
+                      example: contact@hopital-central.fr
+                admin:
+                  type: object
+                  required:
+                    - first_name
+                    - last_name
+                    - email
+                    - password
+                  properties:
+                    first_name:
+                      type: string
+                      example: Jean
+                    last_name:
+                      type: string
+                      example: Dupont
+                    email:
+                      type: string
+                      format: email
+                      example: admin@hopital-central.fr
+                    password:
+                      type: string
+                      format: password
+                      minLength: 8
+                      example: SecurePassword123!
+                options:
+                  type: object
+                  properties:
+                    send_welcome_email:
+                      type: boolean
+                      default: true
+                    auto_login:
+                      type: boolean
+                      default: true
+      responses:
+        '201':
+          description: Onboarding créé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      subdomain:
+                        type: string
+                        example: hopital-central-1234567890
+                      database_name:
+                        type: string
+                        example: medkey_hopital-central-1234567890
+                      url:
+                        type: string
+                        example: https://hopital-central-1234567890.medkey.com
+                      admin_email:
+                        type: string
+                        example: admin@hopital-central.fr
+                      created_at:
+                        type: string
+                        format: date-time
+        '400':
+          description: Erreur de validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Clé API invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Erreur serveur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /onboarding/status/{subdomain}:
+    get:
+      tags:
+        - Onboarding
+      summary: Obtenir le statut d'un onboarding
+      description: Récupère le statut d'un onboarding par son sous-domaine
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: subdomain
+          in: path
+          required: true
+          schema:
+            type: string
+          example: hopital-central-1234567890
+      responses:
+        '200':
+          description: Statut récupéré avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      subdomain:
+                        type: string
+                      status:
+                        type: string
+                        enum: [pending, processing, completed, failed]
+                      database_name:
+                        type: string
+                      created_at:
+                        type: string
+                        format: date-time
+        '404':
+          description: Onboarding non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tenant/{subdomain}:
+    get:
+      tags:
+        - Tenant
+      summary: Obtenir les informations d'un tenant
+      description: Récupère toutes les informations d'un tenant par son sous-domaine
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: subdomain
+          in: path
+          required: true
+          schema:
+            type: string
+          example: hopital-central-1234567890
+      responses:
+        '200':
+          description: Informations récupérées avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      subdomain:
+                        type: string
+                      hospital_name:
+                        type: string
+                      hospital_address:
+                        type: string
+                        nullable: true
+                      hospital_phone:
+                        type: string
+                        nullable: true
+                      hospital_email:
+                        type: string
+                        nullable: true
+                      admin_email:
+                        type: string
+                      database_name:
+                        type: string
+                      status:
+                        type: string
+                      created_at:
+                        type: string
+                        format: date-time
+        '404':
+          description: Tenant non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /webhooks/register:
+    post:
+      tags:
+        - Webhooks
+      summary: Enregistrer un nouveau webhook
+      description: Crée un nouveau webhook pour recevoir des notifications d'événements
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+                - events
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  example: https://votre-app.com/webhooks/onboarding
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum: [onboarding.completed, onboarding.failed]
+                  example: [onboarding.completed, onboarding.failed]
+                timeout:
+                  type: integer
+                  minimum: 5
+                  maximum: 120
+                  default: 30
+      responses:
+        '201':
+          description: Webhook créé avec succès
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      url:
+                        type: string
+                      events:
+                        type: array
+                      secret:
+                        type: string
+                        description: Secret pour vérifier la signature des webhooks
+                      created_at:
+                        type: string
+                        format: date-time
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Format: "Bearer YOUR_API_KEY"
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Erreur de validation
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string

@@ -12,6 +12,18 @@ class Authenticate extends Middleware
      */
     protected function redirectTo(Request $request): ?string
     {
-        return $request->expectsJson() ? null : route('login');
+        if ($request->expectsJson()) {
+            return null;
+        }
+
+        // Ajouter le sous-domaine à l'URL de login si disponible
+        $loginUrl = route('login');
+        if (config('app.env') === 'local' && $request->has('subdomain')) {
+            $loginUrl .= (strpos($loginUrl, '?') !== false ? '&' : '?') . 'subdomain=' . $request->get('subdomain');
+        } elseif (session('current_subdomain')) {
+            $loginUrl .= (strpos($loginUrl, '?') !== false ? '&' : '?') . 'subdomain=' . session('current_subdomain');
+        }
+
+        return $loginUrl;
     }
 }

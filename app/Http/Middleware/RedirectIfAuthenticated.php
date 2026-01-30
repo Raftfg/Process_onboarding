@@ -20,7 +20,22 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                return redirect('/');
+                // Rediriger vers le dashboard au lieu de la page d'accueil
+                $dashboardUrl = route('dashboard');
+                
+                // Ajouter le sous-domaine si disponible
+                $subdomain = null;
+                if (config('app.env') === 'local' && $request->has('subdomain')) {
+                    $subdomain = $request->get('subdomain');
+                } elseif (session('current_subdomain')) {
+                    $subdomain = session('current_subdomain');
+                }
+                
+                if ($subdomain) {
+                    $dashboardUrl .= (strpos($dashboardUrl, '?') !== false ? '&' : '?') . 'subdomain=' . $subdomain;
+                }
+                
+                return redirect($dashboardUrl);
             }
         }
 

@@ -15,3 +15,17 @@ Route::post('/step2', [OnboardingController::class, 'storeStep2'])->name('onboar
 // Route de bienvenue (sera utilisée sur les sous-domaines)
 // Pour la production, configurez cette route avec Route::domain('{subdomain}.' . config('app.subdomain_base_domain'))
 Route::get('/welcome', [WelcomeController::class, 'index'])->name('welcome');
+
+// Routes d'authentification (accessibles uniquement aux invités)
+Route::middleware(['guest'])->group(function () {
+    Route::get('/login', [App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login']);
+});
+
+// Route de déconnexion (accessible aux utilisateurs authentifiés)
+Route::post('/logout', [App\Http\Controllers\Auth\LogoutController::class])->name('logout');
+
+// Route du tableau de bord (protégée par authentification)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+});

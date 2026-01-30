@@ -1,6 +1,34 @@
-# MedKey - Système d'Onboarding
+# MedKey - Système d'Onboarding Multi-Tenant
 
 Système d'onboarding réutilisable pour MedKey permettant de créer automatiquement des sous-domaines et bases de données pour chaque nouvel hôpital.
+
+## 🎯 Intégration dans votre projet
+
+**Vous voulez utiliser ce microservice dans votre projet ?** 
+
+👉 Consultez le **[Guide d'Intégration complet](INTEGRATION.md)** qui explique comment :
+- Intégrer via API REST (sans installation)
+- Utiliser les exemples de code (JavaScript, PHP, React, Vue.js)
+- Configurer les webhooks
+- Gérer l'authentification
+
+**Démarrage rapide :**
+```javascript
+// Exemple JavaScript
+const response = await fetch('https://onboarding.medkey.com/api/onboarding/create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    hospital: { name: 'Hôpital Central', ... },
+    admin: { first_name: 'Jean', ... }
+  })
+});
+```
+
+Voir les [exemples complets](examples/) pour plus de détails.
 
 ## 🚀 Installation
 

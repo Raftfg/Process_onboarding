@@ -116,7 +116,12 @@
                 <p>Vous êtes sur votre sous-domaine MedKey.</p>
                 <div class="subdomain">{{ $subdomain }}</div>
             @endif
-            <a href="#" class="btn">Accéder au tableau de bord</a>
+            
+            @auth
+                <a href="{{ route('dashboard', ['subdomain' => $subdomain]) }}" class="btn">Accéder au tableau de bord</a>
+            @else
+                <a href="{{ route('login', ['subdomain' => $subdomain]) }}" class="btn">Accéder à mon espace</a>
+            @endauth
         </div>
     </div>
 </body>

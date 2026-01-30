@@ -119,7 +119,9 @@ $(document).ready(function() {
                     if (response.result && response.result.url) {
                         $('#loadingOverlay .loading-text').text('Redirection en cours...');
                         setTimeout(function() {
-                            window.location.href = response.result.url + '?welcome=1';
+                            // Utiliser & si l'URL contient déjà un paramètre, sinon utiliser ?
+                            const separator = response.result.url.includes('?') ? '&' : '?';
+                            window.location.href = response.result.url + separator + 'welcome=1';
                         }, 2000);
                     } else {
                         // Sinon, faire du polling
@@ -146,7 +148,9 @@ $(document).ready(function() {
                         // Rediriger vers le sous-domaine
                         if (response.result && response.result.url) {
                             setTimeout(function() {
-                                window.location.href = response.result.url + '?welcome=1';
+                                // Utiliser & si l'URL contient déjà un paramètre, sinon utiliser ?
+                                const separator = response.result.url.includes('?') ? '&' : '?';
+                                window.location.href = response.result.url + separator + 'welcome=1';
                             }, 1000);
                         } else {
                             $('#loadingOverlay').removeClass('active');
