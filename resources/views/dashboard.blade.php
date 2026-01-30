@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ $dashboardConfig->langue ?? 'fr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +15,11 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: #f5f7fa;
             color: #333;
+        }
+
+        body[data-theme="dark"] {
+            background: #1a1a1a;
+            color: #e0e0e0;
         }
 
         .header {
@@ -61,6 +66,23 @@
             font-size: 18px;
         }
 
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.3s;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
         .btn-logout {
             background: rgba(255, 255, 255, 0.2);
             color: white;
@@ -83,12 +105,39 @@
             padding: 0 30px;
         }
 
+        .widgets-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .widget {
+            display: contents;
+        }
+
+        .widget-small {
+            grid-column: span 1;
+        }
+
+        .widget-medium {
+            grid-column: span 1;
+        }
+
+        .widget-large {
+            grid-column: span 2;
+        }
+
         .welcome-card {
             background: white;
             border-radius: 12px;
             padding: 30px;
-            margin-bottom: 30px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        body[data-theme="dark"] .welcome-card {
+            background: #2a2a2a;
+            color: #e0e0e0;
         }
 
         .welcome-card h2 {
@@ -97,16 +146,23 @@
             color: #333;
         }
 
+        body[data-theme="dark"] .welcome-card h2 {
+            color: #e0e0e0;
+        }
+
         .welcome-card p {
             color: #666;
             font-size: 16px;
         }
 
+        body[data-theme="dark"] .welcome-card p {
+            color: #b0b0b0;
+        }
+
         .info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
         }
 
         .info-card {
@@ -114,6 +170,11 @@
             border-radius: 12px;
             padding: 25px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        body[data-theme="dark"] .info-card {
+            background: #2a2a2a;
+            color: #e0e0e0;
         }
 
         .info-card h3 {
@@ -131,9 +192,17 @@
             margin-bottom: 5px;
         }
 
+        body[data-theme="dark"] .info-card .value {
+            color: #e0e0e0;
+        }
+
         .info-card .label {
             font-size: 14px;
             color: #666;
+        }
+
+        body[data-theme="dark"] .info-card .label {
+            color: #b0b0b0;
         }
 
         .details-section {
@@ -143,16 +212,29 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         }
 
+        body[data-theme="dark"] .details-section {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+
         .details-section h3 {
             font-size: 20px;
             margin-bottom: 20px;
             color: #333;
         }
 
+        body[data-theme="dark"] .details-section h3 {
+            color: #e0e0e0;
+        }
+
         .detail-row {
             display: flex;
             padding: 15px 0;
             border-bottom: 1px solid #f0f0f0;
+        }
+
+        body[data-theme="dark"] .detail-row {
+            border-bottom-color: #404040;
         }
 
         .detail-row:last-child {
@@ -166,9 +248,17 @@
             flex-shrink: 0;
         }
 
+        body[data-theme="dark"] .detail-label {
+            color: #b0b0b0;
+        }
+
         .detail-value {
             color: #333;
             flex: 1;
+        }
+
+        body[data-theme="dark"] .detail-value {
+            color: #e0e0e0;
         }
 
         .status-badge {
@@ -191,6 +281,14 @@
                 gap: 15px;
             }
 
+            .widgets-container {
+                grid-template-columns: 1fr;
+            }
+
+            .widget-large {
+                grid-column: span 1;
+            }
+
             .info-grid {
                 grid-template-columns: 1fr;
             }
@@ -205,8 +303,13 @@
             }
         }
     </style>
+    @if(isset($dashboardConfig) && $dashboardConfig->theme === 'dark')
+        <script>
+            document.documentElement.setAttribute('data-theme', 'dark');
+        </script>
+    @endif
 </head>
-<body>
+<body data-theme="{{ $dashboardConfig->theme ?? 'light' }}">
     <div class="header">
         <div class="header-content">
             <h1>MedKey - Tableau de bord</h1>
@@ -217,6 +320,7 @@
                     </div>
                     <span>{{ Auth::user()->name ?? 'Administrateur' }}</span>
                 </div>
+                <a href="{{ route('dashboard.config') }}" class="btn">⚙️ Configurer</a>
                 <form method="POST" action="{{ route('logout') }}" style="display: inline;">
                     @csrf
                     <button type="submit" class="btn-logout">Déconnexion</button>
@@ -226,85 +330,47 @@
     </div>
 
     <div class="container">
-        @if(isset($onboarding))
+        @if(isset($widgetsConfig) && !empty($widgetsConfig))
+            <div class="widgets-container">
+                @foreach($widgetsConfig as $widget)
+                    @php
+                        $widgetId = $widget['id'] ?? '';
+                        $widgetSize = $widget['size'] ?? 'medium';
+                        $widgetSettings = $widget['settings'] ?? [];
+                    @endphp
+                    
+                    @switch($widgetId)
+                        @case('welcome')
+                            @include('dashboard.widgets.welcome', ['size' => $widgetSize, 'tenant' => $tenant ?? null])
+                            @break
+                        @case('tenant_info')
+                            @include('dashboard.widgets.tenant_info', ['size' => $widgetSize, 'tenant' => $tenant ?? null])
+                            @break
+                        @case('user_info')
+                            @include('dashboard.widgets.user_info', ['size' => $widgetSize])
+                            @break
+                        @case('stats')
+                            @include('dashboard.widgets.stats', ['size' => $widgetSize, 'tenant' => $tenant ?? null])
+                            @break
+                        @case('quick_actions')
+                            @include('dashboard.widgets.quick_actions', ['size' => $widgetSize])
+                            @break
+                        @case('recent_activity')
+                            @include('dashboard.widgets.recent_activity', ['size' => $widgetSize, 'tenant' => $tenant ?? null])
+                            @break
+                    @endswitch
+                @endforeach
+            </div>
+        @else
+            {{-- Affichage par défaut si aucun widget n'est configuré --}}
             <div class="welcome-card">
                 <h2>Bienvenue, {{ Auth::user()->name ?? 'Administrateur' }} !</h2>
                 <p>Votre espace MedKey est maintenant configuré et prêt à l'emploi.</p>
-            </div>
-
-            <div class="info-grid">
-                <div class="info-card">
-                    <h3>Statut</h3>
-                    <div class="value">
-                        <span class="status-badge completed">Actif</span>
-                    </div>
-                    <div class="label">Système opérationnel</div>
-                </div>
-
-                <div class="info-card">
-                    <h3>Sous-domaine</h3>
-                    <div class="value">{{ $onboarding->subdomain ?? 'N/A' }}</div>
-                    <div class="label">Identifiant unique</div>
-                </div>
-
-                <div class="info-card">
-                    <div class="value">{{ $onboarding->completed_at ? $onboarding->completed_at->format('d/m/Y') : 'N/A' }}</div>
-                    <div class="label">Date d'activation</div>
-                </div>
-            </div>
-
-            <div class="details-section">
-                <h3>Informations de l'hôpital</h3>
-                
-                <div class="detail-row">
-                    <div class="detail-label">Nom de l'hôpital</div>
-                    <div class="detail-value">{{ $onboarding->hospital_name ?? 'N/A' }}</div>
-                </div>
-
-                @if($onboarding->hospital_address)
-                <div class="detail-row">
-                    <div class="detail-label">Adresse</div>
-                    <div class="detail-value">{{ $onboarding->hospital_address }}</div>
-                </div>
-                @endif
-
-                @if($onboarding->hospital_phone)
-                <div class="detail-row">
-                    <div class="detail-label">Téléphone</div>
-                    <div class="detail-value">{{ $onboarding->hospital_phone }}</div>
-                </div>
-                @endif
-
-                @if($onboarding->hospital_email)
-                <div class="detail-row">
-                    <div class="detail-label">Email</div>
-                    <div class="detail-value">{{ $onboarding->hospital_email }}</div>
-                </div>
-                @endif
-            </div>
-
-            <div class="details-section" style="margin-top: 20px;">
-                <h3>Informations administrateur</h3>
-                
-                <div class="detail-row">
-                    <div class="detail-label">Nom complet</div>
-                    <div class="detail-value">{{ $onboarding->admin_first_name ?? '' }} {{ $onboarding->admin_last_name ?? '' }}</div>
-                </div>
-
-                <div class="detail-row">
-                    <div class="detail-label">Email</div>
-                    <div class="detail-value">{{ $onboarding->admin_email ?? Auth::user()->email ?? 'N/A' }}</div>
-                </div>
-
-                <div class="detail-row">
-                    <div class="detail-label">Email connecté</div>
-                    <div class="detail-value">{{ Auth::user()->email ?? 'N/A' }}</div>
-                </div>
-            </div>
-        @else
-            <div class="welcome-card">
-                <h2>Bienvenue, {{ Auth::user()->name ?? 'Administrateur' }} !</h2>
-                <p>Aucune information d'onboarding trouvée pour ce sous-domaine.</p>
+                <p style="margin-top: 15px;">
+                    <a href="{{ route('dashboard.config') }}" class="btn" style="background: #667eea; color: white;">
+                        ⚙️ Configurer votre dashboard
+                    </a>
+                </p>
             </div>
         @endif
     </div>

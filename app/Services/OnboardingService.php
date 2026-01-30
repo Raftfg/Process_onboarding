@@ -11,7 +11,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Config;
 use App\Mail\OnboardingWelcomeMail;
 use App\Models\OnboardingSession;
-use App\Models\User;
+use App\Models\Tenant;
+use App\Models\Tenant\User as TenantUser;
 use App\Services\TenantService;
 use App\Services\WebhookService;
 
@@ -40,6 +41,9 @@ class OnboardingService
             
             // Enregistrer la session d'onboarding (dans la base principale)
             $this->saveOnboardingSession($data, $subdomain, $databaseName);
+            
+            // Créer le tenant dans la base principale
+            $tenant = $this->createTenant($data, $subdomain, $databaseName);
             
             // Basculer vers la base du tenant
             $this->tenantService->switchToTenantDatabase($databaseName);
@@ -176,52 +180,47 @@ class OnboardingService
         return subdomain_url($subdomain, '/dashboard');
     }
 
+    /**
+     * Crée un tenant dans la base principale
+     */
+    protected function createTenant(array $data, string $subdomain, string $databaseName): Tenant
+    {
+        try {
+            $tenant = $this->tenantService->createTenant([
+                'subdomain' => $subdomain,
+                'database_name' => $databaseName,
+                'name' => $data['step1']['hospital_name'],
+                'email' => $data['step1']['hospital_email'] ?? $data['step2']['admin_email'],
+                'phone' => $data['step1']['hospital_phone'] ?? null,
+                'address' => $data['step1']['hospital_address'] ?? null,
+                'status' => 'active',
+            ]);
+            
+            Log::info("Tenant créé: {$subdomain}");
+            return $tenant;
+        } catch (\Exception $e) {
+            Log::error("Erreur création tenant: " . $e->getMessage());
+            throw new \Exception("Impossible de créer le tenant: " . $e->getMessage());
+        }
+    }
+
     protected function runMigrationsInTenantDatabase(): void
     {
         try {
-            // Exécuter les migrations dans la base du tenant
-            // Utiliser DB directement pour créer les tables nécessaires
-            $connection = DB::connection('tenant');
+            // Récupérer le nom de la base de données actuelle
+            $databaseName = DB::connection()->getDatabaseName();
             
-            // Créer la table sessions
-            $connection->statement("
-                CREATE TABLE IF NOT EXISTS `sessions` (
-                    `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-                    `user_id` bigint(20) unsigned DEFAULT NULL,
-                    `ip_address` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-                    `user_agent` text COLLATE utf8mb4_unicode_ci,
-                    `payload` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
-                    `last_activity` int(11) NOT NULL,
-                    PRIMARY KEY (`id`),
-                    KEY `sessions_user_id_index` (`user_id`),
-                    KEY `sessions_last_activity_index` (`last_activity`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-            ");
+            // Utiliser TenantService pour exécuter les migrations
+            $this->tenantService->runTenantMigrations($databaseName);
             
-            // Créer la table users
-            $connection->statement("
-                CREATE TABLE IF NOT EXISTS `users` (
-                    `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-                    `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-                    `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-                    `email_verified_at` timestamp NULL DEFAULT NULL,
-                    `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-                    `remember_token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-                    `created_at` timestamp NULL DEFAULT NULL,
-                    `updated_at` timestamp NULL DEFAULT NULL,
-                    PRIMARY KEY (`id`),
-                    UNIQUE KEY `users_email_unique` (`email`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-            ");
-            
-            Log::info("Migrations exécutées dans la base du tenant");
+            Log::info("Migrations exécutées dans la base du tenant: {$databaseName}");
         } catch (\Exception $e) {
             Log::error("Erreur lors de l'exécution des migrations: " . $e->getMessage());
             throw new \Exception("Impossible d'exécuter les migrations: " . $e->getMessage());
         }
     }
 
-    protected function createAdminUser(array $adminData, string $hospitalName): User
+    protected function createAdminUser(array $adminData, string $hospitalName): TenantUser
     {
         try {
             // Vérifier que nous sommes bien sur la base du tenant
@@ -229,14 +228,15 @@ class OnboardingService
             Log::info("Création utilisateur dans la base: {$currentDatabase}");
             
             // Vérifier si l'utilisateur existe déjà dans la base du tenant
-            $user = User::where('email', $adminData['admin_email'])->first();
+            $user = TenantUser::where('email', $adminData['admin_email'])->first();
             
             if (!$user) {
                 // Créer le nouvel utilisateur dans la base du tenant
-                $user = User::create([
+                $user = TenantUser::create([
                     'name' => $adminData['admin_first_name'] . ' ' . $adminData['admin_last_name'],
                     'email' => $adminData['admin_email'],
                     'password' => Hash::make($adminData['admin_password']),
+                    'role' => 'admin',
                     'email_verified_at' => now(),
                 ]);
                 

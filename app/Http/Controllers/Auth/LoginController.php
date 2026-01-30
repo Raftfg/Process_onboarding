@@ -3,17 +3,19 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
+use App\Services\TenantAuthService;
 use App\Services\TenantService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class LoginController extends Controller
 {
+    protected $tenantAuthService;
     protected $tenantService;
 
-    public function __construct(TenantService $tenantService)
+    public function __construct(TenantAuthService $tenantAuthService, TenantService $tenantService)
     {
+        $this->tenantAuthService = $tenantAuthService;
         $this->tenantService = $tenantService;
     }
 
@@ -22,19 +24,16 @@ class LoginController extends Controller
      */
     public function showLoginForm(Request $request)
     {
-        // Récupérer le sous-domaine si disponible
-        $subdomain = null;
-        if (config('app.env') === 'local' && $request->has('subdomain')) {
-            $subdomain = $request->get('subdomain');
-        } else {
-            $host = $request->getHost();
-            $parts = explode('.', $host);
-            if (count($parts) >= 3) {
-                $subdomain = $parts[0];
-            }
-        }
+        // Récupérer le sous-domaine depuis l'URL
+        $subdomain = $this->extractSubdomain($request);
 
-        return view('auth.login', ['subdomain' => $subdomain]);
+        // Récupérer l'email depuis la query string si présent (venant de la sélection de domaine)
+        $email = $request->query('email');
+
+        return view('auth.login', [
+            'subdomain' => $subdomain,
+            'email' => $email,
+        ]);
     }
 
     /**
@@ -47,30 +46,60 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        // Récupérer le sous-domaine pour basculer vers la bonne base
-        $subdomain = $request->input('subdomain');
+        // Récupérer le sous-domaine
+        $subdomain = $this->extractSubdomain($request);
         
-        if ($subdomain) {
-            // Basculer vers la base du tenant
-            $databaseName = $this->tenantService->getTenantDatabase($subdomain);
-            if ($databaseName) {
-                $this->tenantService->switchToTenantDatabase($databaseName);
-                session(['current_subdomain' => $subdomain]);
-            }
+        if (!$subdomain) {
+            return back()->withErrors([
+                'email' => 'Impossible de déterminer le tenant. Veuillez accéder via votre sous-domaine.',
+            ])->onlyInput('email');
         }
 
-        // Tenter la connexion
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            $request->session()->regenerate();
+        try {
+            Log::info('Tentative de connexion', [
+                'email' => $credentials['email'],
+                'subdomain' => $subdomain,
+                'ip' => $request->ip(),
+            ]);
 
-            Log::info('Utilisateur connecté: ' . Auth::user()->email);
+            // Authentifier via TenantAuthService
+            $user = $this->tenantAuthService->authenticate(
+                $credentials['email'],
+                $credentials['password'],
+                $subdomain,
+                $request->boolean('remember')
+            );
 
-            // Rediriger vers le dashboard
-            if ($subdomain) {
+            if ($user) {
+                $request->session()->regenerate();
+                Log::info('Utilisateur connecté avec succès', [
+                    'email' => $user->email,
+                    'tenant' => $subdomain,
+                    'user_id' => $user->id,
+                ]);
+
+                // Rediriger vers le dashboard
                 return redirect(subdomain_url($subdomain, '/dashboard'));
             }
-
-            return redirect()->route('dashboard');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::warning('Erreur de validation lors de la connexion', [
+                'email' => $credentials['email'],
+                'subdomain' => $subdomain,
+                'errors' => $e->errors(),
+            ]);
+            return back()->withErrors($e->errors())->onlyInput('email');
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la connexion', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'email' => $credentials['email'],
+                'subdomain' => $subdomain,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            return back()->withErrors([
+                'email' => 'Une erreur est survenue lors de la connexion. Veuillez vérifier les logs pour plus de détails.',
+            ])->onlyInput('email');
         }
 
         return back()->withErrors([
@@ -79,20 +108,28 @@ class LoginController extends Controller
     }
 
     /**
-     * Déconnecte l'utilisateur
+     * Extrait le sous-domaine depuis la requête
      */
-    public function logout(Request $request)
+    protected function extractSubdomain(Request $request): ?string
     {
-        Auth::logout();
+        // En développement local, le sous-domaine peut être passé en paramètre
+        if (config('app.env') === 'local' && $request->has('subdomain')) {
+            return $request->get('subdomain');
+        }
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // Extraire depuis le host
+        $host = $request->getHost();
+        $parts = explode('.', $host);
+        
+        // En local, le format est: subdomain.localhost
+        // En production, le format est: subdomain.domain.com
+        if (count($parts) >= 2 && $parts[1] === 'localhost') {
+            return $parts[0];
+        } elseif (count($parts) >= 3) {
+            // En production, extraire le sous-domaine
+            return $parts[0];
+        }
 
-        // Revenir à la base principale
-        \Illuminate\Support\Facades\Config::set('database.default', 'mysql');
-        \Illuminate\Support\Facades\DB::purge('tenant');
-        session()->forget('current_subdomain');
-
-        return redirect('/');
+        return null;
     }
 }

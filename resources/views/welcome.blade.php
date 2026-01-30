@@ -121,6 +121,11 @@
                 <a href="{{ subdomain_url($subdomain, '/dashboard') }}" class="btn">Accéder au tableau de bord</a>
             @else
                 <a href="{{ subdomain_url($subdomain, '/login') }}" class="btn">Accéder à mon espace</a>
+                <p style="margin-top: 20px;">
+                    <a href="{{ route('start') }}" style="color: #667eea; text-decoration: none; font-size: 14px;">
+                        Se connecter à un autre domaine
+                    </a>
+                </p>
             @endauth
         </div>
     </div>

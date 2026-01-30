@@ -124,7 +124,7 @@ class OnboardingApiController extends Controller
             }
 
             // Récupérer l'utilisateur depuis la base du tenant
-            $user = \App\Models\User::where('email', $adminEmail)->first();
+            $user = \App\Models\Tenant\User::where('email', $adminEmail)->first();
             
             if ($user) {
                 // Connecter l'utilisateur avec "remember" pour persister la session

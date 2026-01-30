@@ -6,16 +6,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use App\Services\TenantService;
+use App\Services\TenantAuthService;
+use App\Models\Tenant;
+use App\Models\Tenant\User as TenantUser;
 use App\Models\OnboardingSession;
 use Illuminate\Support\Facades\Log;
 
 class WelcomeController extends Controller
 {
     protected $tenantService;
+    protected $tenantAuthService;
 
-    public function __construct(TenantService $tenantService)
+    public function __construct(TenantService $tenantService, TenantAuthService $tenantAuthService)
     {
         $this->tenantService = $tenantService;
+        $this->tenantAuthService = $tenantAuthService;
     }
 
     public function index(Request $request)
@@ -83,16 +88,18 @@ class WelcomeController extends Controller
             $databaseName = $this->tenantService->getTenantDatabase($subdomain);
             if ($databaseName) {
                 $this->tenantService->switchToTenantDatabase($databaseName);
+                // Configurer le modèle d'authentification
+                \Illuminate\Support\Facades\Config::set('auth.providers.users.model', TenantUser::class);
                 session(['current_subdomain' => $subdomain]);
             }
 
             // Récupérer l'utilisateur depuis la base du tenant
-            $user = \App\Models\User::where('email', $onboarding->admin_email)->first();
+            $user = TenantUser::where('email', $onboarding->admin_email)->first();
             
             if ($user) {
                 // Connecter l'utilisateur
-                Auth::login($user, true);
-                Session::regenerate();
+                \Illuminate\Support\Facades\Auth::login($user, true);
+                \Illuminate\Support\Facades\Session::regenerate();
                 
                 Log::info("Reconnexion automatique réussie pour: {$onboarding->admin_email}");
             }

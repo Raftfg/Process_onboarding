@@ -19,28 +19,51 @@ class RedirectIfAuthenticated
         $guards = empty($guards) ? [null] : $guards;
 
         foreach ($guards as $guard) {
+            // Vérifier si l'utilisateur est authentifié
+            // IMPORTANT: Ne vérifier que si on est sur une route de login/welcome
+            // pour éviter les boucles de redirection
+            $path = $request->path();
+            $isLoginRoute = in_array($path, ['login', 'welcome']);
+            
+            if (!$isLoginRoute) {
+                // Si on n'est pas sur une route de login, ne pas vérifier l'authentification
+                // pour éviter les boucles
+                continue;
+            }
+            
             if (Auth::guard($guard)->check()) {
-                // Rediriger vers le dashboard au lieu de la page d'accueil
-                // Ajouter le sous-domaine si disponible
-                $subdomain = null;
-                if (config('app.env') === 'local' && $request->has('subdomain')) {
-                    $subdomain = $request->get('subdomain');
-                } elseif (session('current_subdomain')) {
-                    $subdomain = session('current_subdomain');
-                } else {
-                    // Essayer d'extraire depuis le host
-                    $host = $request->getHost();
-                    $parts = explode('.', $host);
-                    if (count($parts) >= 2 && $parts[0] !== 'localhost' && $parts[0] !== '127' && $parts[0] !== 'www') {
-                        $subdomain = $parts[0];
+                try {
+                    $user = Auth::guard($guard)->user();
+                    
+                    // Si l'utilisateur existe, rediriger vers le dashboard
+                    if ($user) {
+                        // Extraire le sous-domaine
+                        $subdomain = null;
+                        if (config('app.env') === 'local' && $request->has('subdomain')) {
+                            $subdomain = $request->get('subdomain');
+                        } elseif (session('current_subdomain')) {
+                            $subdomain = session('current_subdomain');
+                        } else {
+                            // Essayer d'extraire depuis le host
+                            $host = $request->getHost();
+                            $parts = explode('.', $host);
+                            if (count($parts) >= 2 && $parts[1] === 'localhost') {
+                                $subdomain = $parts[0];
+                            } elseif (count($parts) >= 3) {
+                                $subdomain = $parts[0];
+                            }
+                        }
+                        
+                        if ($subdomain) {
+                            return redirect(subdomain_url($subdomain, '/dashboard'));
+                        } else {
+                            return redirect()->route('dashboard');
+                        }
                     }
+                } catch (\Exception $e) {
+                    // En cas d'erreur, déconnecter l'utilisateur et continuer
+                    Auth::guard($guard)->logout();
                 }
-                
-                if ($subdomain) {
-                    return redirect(subdomain_url($subdomain, '/dashboard'));
-                }
-                
-                return redirect()->route('dashboard');
             }
         }
 

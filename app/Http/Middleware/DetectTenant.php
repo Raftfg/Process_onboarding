@@ -6,6 +6,8 @@ use App\Services\TenantService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Config;
 
 class DetectTenant
 {
@@ -29,9 +31,10 @@ class DetectTenant
             return $next($request);
         }
 
-        // Vérifier si le tenant existe
+        // Vérifier si le tenant existe et est actif
         if (!$this->tenantService->tenantExists($subdomain)) {
             // Si le tenant n'existe pas, continuer avec la base principale
+            Log::warning("Tentative d'accès à un tenant inexistant ou inactif : {$subdomain}");
             return $next($request);
         }
 
@@ -43,10 +46,16 @@ class DetectTenant
                 // Basculer vers la base de données du tenant
                 $this->tenantService->switchToTenantDatabase($databaseName);
                 
+                // Configurer le modèle d'authentification pour utiliser Tenant\User
+                Config::set('auth.providers.users.model', \App\Models\Tenant\User::class);
+                
                 // Stocker le sous-domaine dans la session pour utilisation ultérieure
                 session(['current_subdomain' => $subdomain]);
+                
+                // Stocker également dans la requête pour un accès facile
+                $request->merge(['current_subdomain' => $subdomain]);
             } catch (\Exception $e) {
-                \Log::error("Erreur lors du basculement vers la base tenant: " . $e->getMessage());
+                Log::error("Erreur lors du basculement vers la base tenant: " . $e->getMessage());
                 // En cas d'erreur, continuer avec la base principale
             }
         }
@@ -64,12 +73,16 @@ class DetectTenant
             return $request->get('subdomain');
         }
 
-        // En production, extraire depuis le host
+        // Extraire depuis le host
         $host = $request->getHost();
         $parts = explode('.', $host);
         
-        // Si on a au moins 3 parties (subdomain.domain.tld), prendre la première
-        if (count($parts) >= 3) {
+        // En local, le format est: subdomain.localhost
+        // En production, le format est: subdomain.domain.com
+        if (count($parts) >= 2 && $parts[1] === 'localhost') {
+            return $parts[0];
+        } elseif (count($parts) >= 3) {
+            // En production, extraire le sous-domaine
             return $parts[0];
         }
 
