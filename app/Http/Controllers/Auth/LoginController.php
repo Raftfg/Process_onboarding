@@ -8,19 +8,16 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Services\DashboardService;
 use App\Services\TenantService;
-use App\Services\RecaptchaService;
 
 class LoginController extends Controller
 {
     protected $tenantService;
     protected $dashboardService;
-    protected $recaptchaService;
 
-    public function __construct(TenantService $tenantService, DashboardService $dashboardService, RecaptchaService $recaptchaService)
+    public function __construct(TenantService $tenantService, DashboardService $dashboardService)
     {
         $this->tenantService = $tenantService;
         $this->dashboardService = $dashboardService;
-        $this->recaptchaService = $recaptchaService;
     }
 
     /**
@@ -49,25 +46,6 @@ class LoginController extends Controller
      */
     public function login(Request $request)
     {
-        // Valider reCAPTCHA
-        $recaptchaToken = $request->input('g-recaptcha-response');
-        
-        Log::info('Tentative de connexion avec reCAPTCHA', [
-            'has_token' => !empty($recaptchaToken),
-            'token_length' => strlen($recaptchaToken ?? ''),
-            'ip' => $request->ip(),
-        ]);
-        
-        if (!$this->recaptchaService->verify($recaptchaToken, $request->ip())) {
-            Log::warning('reCAPTCHA validation échouée pour la connexion', [
-                'ip' => $request->ip(),
-                'email' => $request->input('email'),
-            ]);
-            return back()->withErrors([
-                'recaptcha' => 'La vérification reCAPTCHA a échoué. Veuillez réessayer.',
-            ])->onlyInput('email');
-        }
-
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],

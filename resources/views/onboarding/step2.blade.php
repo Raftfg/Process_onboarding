@@ -55,11 +55,6 @@
         <div class="error-message" id="error_admin_password_confirmation"></div>
     </div>
 
-    <div class="form-group">
-        <div class="g-recaptcha" data-sitekey="{{ config('recaptcha.site_key') }}"></div>
-        <div class="error-message" id="error_recaptcha"></div>
-    </div>
-
     <button type="submit" class="btn btn-primary" id="submitBtn">Finaliser</button>
 </form>
 @endsection
@@ -79,17 +74,8 @@ $(document).ready(function() {
         // Récupérer le token CSRF
         const token = $('meta[name="csrf-token"]').attr('content');
         
-        // Récupérer le token reCAPTCHA
-        const recaptchaToken = grecaptcha.getResponse();
-        if (!recaptchaToken) {
-            $('#error_recaptcha').text('Veuillez compléter la vérification reCAPTCHA.');
-            $('#loadingOverlay').removeClass('active');
-            $('#submitBtn').prop('disabled', false).text('Finaliser');
-            return;
-        }
-        
-        // Envoyer les données avec le token reCAPTCHA
-        const formData = $(this).serialize() + '&g-recaptcha-response=' + encodeURIComponent(recaptchaToken);
+        // Envoyer les données
+        const formData = $(this).serialize();
         
         $.ajax({
             url: '{{ route("onboarding.storeStep2") }}',
@@ -112,17 +98,10 @@ $(document).ready(function() {
                     const errors = xhr.responseJSON.errors;
                     // Afficher les erreurs
                     Object.keys(errors).forEach(function(key) {
-                        if (key === 'recaptcha') {
-                            $('#error_recaptcha').text(errors[key][0]);
-                        } else {
-                            $('#error_' + key).text(errors[key][0]);
-                        }
+                        $('#error_' + key).text(errors[key][0]);
                     });
-                    // Réinitialiser reCAPTCHA
-                    grecaptcha.reset();
                 } else {
                     alert('Une erreur est survenue. Veuillez réessayer.');
-                    grecaptcha.reset();
                 }
             }
         });
@@ -203,5 +182,4 @@ $(document).ready(function() {
     }
 });
 </script>
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 @endpush

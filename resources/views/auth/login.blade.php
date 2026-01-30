@@ -188,18 +188,8 @@
                 <label for="remember">Se souvenir de moi</label>
             </div>
 
-            @error('recaptcha')
-                <div class="error-message" style="margin-bottom: 15px;">{{ $message }}</div>
-            @enderror
-
-            <div class="form-group" style="margin-bottom: 20px;">
-                <div class="g-recaptcha" data-sitekey="{{ config('recaptcha.site_key') }}"></div>
-            </div>
-
             <button type="submit" class="btn-login">Se connecter</button>
         </form>
     </div>
-
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </body>
 </html>
