@@ -120,6 +120,16 @@
             margin-top: 5px;
         }
 
+        .success-message {
+            background: #10b981;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: center;
+        }
+
         @if ($errors->has('email'))
             .form-group:first-of-type input {
                 border-color: #ef4444;
@@ -134,12 +144,14 @@
             <p>Accédez à votre espace MedKey</p>
         </div>
 
+        @if(session('success'))
+            <div class="success-message">
+                {{ session('success') }}
+            </div>
+        @endif
+
         <form method="POST" action="{{ route('login') }}">
             @csrf
-            
-            @if(isset($subdomain))
-                <input type="hidden" name="subdomain" value="{{ $subdomain }}">
-            @endif
 
             <div class="form-group">
                 <label for="email">Adresse email</label>
@@ -176,8 +188,18 @@
                 <label for="remember">Se souvenir de moi</label>
             </div>
 
+            @error('recaptcha')
+                <div class="error-message" style="margin-bottom: 15px;">{{ $message }}</div>
+            @enderror
+
+            <div class="form-group" style="margin-bottom: 20px;">
+                <div class="g-recaptcha" data-sitekey="{{ config('recaptcha.site_key') }}"></div>
+            </div>
+
             <button type="submit" class="btn-login">Se connecter</button>
         </form>
     </div>
+
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </body>
 </html>

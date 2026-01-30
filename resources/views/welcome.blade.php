@@ -118,9 +118,25 @@
             @endif
             
             @auth
-                <a href="{{ route('dashboard', ['subdomain' => $subdomain]) }}" class="btn">Accéder au tableau de bord</a>
+                @if(isset($subdomain))
+                    @if(config('app.env') === 'local')
+                        <a href="http://{{ $subdomain }}.localhost:8000/dashboard" class="btn">Accéder au tableau de bord</a>
+                    @else
+                        <a href="https://{{ $subdomain }}.{{ config('app.subdomain_base_domain', 'medkey.local') }}/dashboard" class="btn">Accéder au tableau de bord</a>
+                    @endif
+                @else
+                    <a href="{{ route('dashboard') }}" class="btn">Accéder au tableau de bord</a>
+                @endif
             @else
-                <a href="{{ route('login', ['subdomain' => $subdomain]) }}" class="btn">Accéder à mon espace</a>
+                @if(isset($subdomain))
+                    @if(config('app.env') === 'local')
+                        <a href="http://{{ $subdomain }}.localhost:8000/login" class="btn">Accéder à mon espace</a>
+                    @else
+                        <a href="https://{{ $subdomain }}.{{ config('app.subdomain_base_domain', 'medkey.local') }}/login" class="btn">Accéder à mon espace</a>
+                    @endif
+                @else
+                    <a href="{{ route('login') }}" class="btn">Accéder à mon espace</a>
+                @endif
             @endauth
         </div>
     </div>

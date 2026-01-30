@@ -50,7 +50,14 @@
             
             <p>Vous pouvez maintenant accéder à votre espace d'administration en cliquant sur le bouton ci-dessous :</p>
             
-            <a href="{{ $url }}" class="button">Accéder à mon espace</a>
+            <p><strong>Votre email de connexion:</strong> {{ $adminEmail ?? 'Utilisé lors de l\'onboarding' }}</p>
+            
+            <a href="{{ $url }}" class="button">Se connecter à mon espace</a>
+            
+            <p style="margin-top: 20px; font-size: 12px; color: #666;">
+                Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :<br>
+                <a href="{{ $url }}" style="color: #667eea;">{{ $url }}</a>
+            </p>
             
             <p style="margin-top: 30px;">Cordialement,<br>L'équipe MedKey</p>
         </div>

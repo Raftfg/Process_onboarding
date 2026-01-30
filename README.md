@@ -182,6 +182,50 @@ Le système utilise un design moderne avec :
 - **Base de données** : Les bases de données sont créées avec le préfixe `medkey_`
 - **Sous-domaines** : Les sous-domaines sont générés à partir du nom de l'hôpital (slugifié)
 
+## 🧪 Tests
+
+### Tests d'onboarding
+
+Le projet inclut un script de test complet pour valider le processus d'onboarding :
+
+**Via Artisan (recommandé) :**
+```bash
+# Exécuter tous les tests
+php artisan test:onboarding
+
+# Exécuter les tests et nettoyer les données après
+php artisan test:onboarding --clean
+
+# Utiliser un sous-domaine spécifique
+php artisan test:onboarding --subdomain=mon-test
+```
+
+**Via scripts shell :**
+```bash
+# Linux/Mac
+./test-onboarding.sh
+
+# Windows
+test-onboarding.bat
+
+# Avec nettoyage automatique
+./test-onboarding.sh --clean
+```
+
+**Tests PHPUnit :**
+```bash
+php artisan test --filter OnboardingTest
+```
+
+### Ce qui est testé
+
+- ✅ Création de la base de données
+- ✅ Processus d'onboarding complet
+- ✅ Création de l'utilisateur admin
+- ✅ Basculement entre bases de données
+- ✅ Authentification de l'utilisateur
+- ✅ Session d'onboarding
+
 ## 🐛 Dépannage
 
 ### Erreur de création de base de données

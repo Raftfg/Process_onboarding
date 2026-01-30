@@ -20,36 +20,44 @@ class WelcomeController extends Controller
 
     public function index(Request $request)
     {
-        // Récupérer le sous-domaine
-        // En développement local, le sous-domaine peut être passé en paramètre
-        if (config('app.env') === 'local' && $request->has('subdomain')) {
-            $subdomain = $request->get('subdomain');
+        // Récupérer le sous-domaine depuis le host
+        $host = $request->getHost();
+        $parts = explode('.', $host);
+        
+        // En local: format subdomain.localhost
+        // En production: format subdomain.domain.tld
+        if (config('app.env') === 'local' && count($parts) >= 2 && $parts[1] === 'localhost') {
+            $subdomain = $parts[0];
+        } elseif (count($parts) >= 3) {
+            $subdomain = $parts[0];
         } else {
-            // En production, extraire depuis le host
-            $host = $request->getHost();
-            $subdomain = explode('.', $host)[0];
+            $subdomain = null;
         }
         
         // Si l'utilisateur est déjà connecté, rediriger directement vers le dashboard
-        if (Auth::check()) {
-            $dashboardUrl = route('dashboard');
-            if ($subdomain) {
-                $dashboardUrl .= (strpos($dashboardUrl, '?') !== false ? '&' : '?') . 'subdomain=' . $subdomain;
+        // MAIS seulement si on a un sous-domaine valide
+        if (Auth::check() && $subdomain) {
+            // Construire l'URL du dashboard avec le sous-domaine dans l'URL (sans paramètre)
+            if (config('app.env') === 'local') {
+                $dashboardUrl = "http://{$subdomain}.localhost:8000/dashboard";
+            } else {
+                $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
+                $dashboardUrl = "https://{$subdomain}.{$baseDomain}/dashboard";
             }
-            return redirect($dashboardUrl);
+            
+            return redirect()->away($dashboardUrl);
         }
         
-        // Si c'est une redirection après onboarding et que l'utilisateur n'est pas connecté,
-        // essayer de le reconnecter automatiquement
-        if ($request->has('welcome') && $subdomain) {
-            $this->attemptAutoLogin($subdomain);
-            
-            // Vérifier à nouveau si la connexion a réussi
-            if (Auth::check()) {
-                $dashboardUrl = route('dashboard');
-                $dashboardUrl .= (strpos($dashboardUrl, '?') !== false ? '&' : '?') . 'subdomain=' . $subdomain;
-                return redirect($dashboardUrl);
+        // Si c'est une redirection après onboarding, rediriger vers la page de connexion
+        // au lieu de tenter une connexion automatique
+        if ($request->has('welcome') && $subdomain && !Auth::check()) {
+            if (config('app.env') === 'local') {
+                $loginUrl = "http://{$subdomain}.localhost:8000/login";
+            } else {
+                $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
+                $loginUrl = "https://{$subdomain}.{$baseDomain}/login";
             }
+            return redirect($loginUrl)->with('success', 'Onboarding terminé avec succès. Veuillez vous connecter.');
         }
         
         // Vérifier si c'est une redirection après onboarding
@@ -67,8 +75,13 @@ class WelcomeController extends Controller
     protected function attemptAutoLogin(string $subdomain): void
     {
         try {
-            // Récupérer les informations d'onboarding
-            $onboarding = OnboardingSession::where('subdomain', $subdomain)
+            // S'assurer qu'on utilise la base principale pour chercher l'onboarding
+            \Illuminate\Support\Facades\Config::set('database.default', 'mysql');
+            \Illuminate\Support\Facades\DB::purge('tenant');
+            
+            // Récupérer les informations d'onboarding depuis la base principale
+            $onboarding = OnboardingSession::on('mysql')
+                ->where('subdomain', $subdomain)
                 ->where('status', 'completed')
                 ->first();
             

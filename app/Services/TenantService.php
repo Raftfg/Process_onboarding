@@ -18,7 +18,10 @@ class TenantService
         $cacheKey = "tenant_db_{$subdomain}";
         
         return Cache::remember($cacheKey, 3600, function () use ($subdomain) {
-            $onboarding = OnboardingSession::where('subdomain', $subdomain)
+            // FORCER l'utilisation de la connexion principale
+            // (OnboardingSession est toujours dans la base principale)
+            $onboarding = OnboardingSession::on('mysql')
+                ->where('subdomain', $subdomain)
                 ->where('status', 'completed')
                 ->first();
             
@@ -64,7 +67,9 @@ class TenantService
      */
     public function getTenantInfo(string $subdomain): ?OnboardingSession
     {
-        return OnboardingSession::where('subdomain', $subdomain)
+        // FORCER l'utilisation de la connexion principale
+        return OnboardingSession::on('mysql')
+            ->where('subdomain', $subdomain)
             ->where('status', 'completed')
             ->first();
     }
@@ -74,7 +79,9 @@ class TenantService
      */
     public function tenantExists(string $subdomain): bool
     {
-        return OnboardingSession::where('subdomain', $subdomain)
+        // FORCER l'utilisation de la connexion principale
+        return OnboardingSession::on('mysql')
+            ->where('subdomain', $subdomain)
             ->where('status', 'completed')
             ->exists();
     }

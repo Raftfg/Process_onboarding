@@ -55,6 +55,11 @@
         <div class="error-message" id="error_admin_password_confirmation"></div>
     </div>
 
+    <div class="form-group">
+        <div class="g-recaptcha" data-sitekey="{{ config('recaptcha.site_key') }}"></div>
+        <div class="error-message" id="error_recaptcha"></div>
+    </div>
+
     <button type="submit" class="btn btn-primary" id="submitBtn">Finaliser</button>
 </form>
 @endsection
@@ -74,14 +79,25 @@ $(document).ready(function() {
         // Récupérer le token CSRF
         const token = $('meta[name="csrf-token"]').attr('content');
         
-        // Envoyer les données
+        // Récupérer le token reCAPTCHA
+        const recaptchaToken = grecaptcha.getResponse();
+        if (!recaptchaToken) {
+            $('#error_recaptcha').text('Veuillez compléter la vérification reCAPTCHA.');
+            $('#loadingOverlay').removeClass('active');
+            $('#submitBtn').prop('disabled', false).text('Finaliser');
+            return;
+        }
+        
+        // Envoyer les données avec le token reCAPTCHA
+        const formData = $(this).serialize() + '&g-recaptcha-response=' + encodeURIComponent(recaptchaToken);
+        
         $.ajax({
             url: '{{ route("onboarding.storeStep2") }}',
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': token
             },
-            data: $(this).serialize(),
+            data: formData,
             success: function(response) {
                 if (response.success) {
                     // Démarrer le processus d'onboarding
@@ -96,10 +112,17 @@ $(document).ready(function() {
                     const errors = xhr.responseJSON.errors;
                     // Afficher les erreurs
                     Object.keys(errors).forEach(function(key) {
-                        $('#error_' + key).text(errors[key][0]);
+                        if (key === 'recaptcha') {
+                            $('#error_recaptcha').text(errors[key][0]);
+                        } else {
+                            $('#error_' + key).text(errors[key][0]);
+                        }
                     });
+                    // Réinitialiser reCAPTCHA
+                    grecaptcha.reset();
                 } else {
                     alert('Une erreur est survenue. Veuillez réessayer.');
+                    grecaptcha.reset();
                 }
             }
         });
@@ -115,18 +138,24 @@ $(document).ready(function() {
             },
             success: function(response) {
                 if (response.success) {
-                    // Si le résultat est déjà disponible, rediriger directement
+                    // Si le résultat est déjà disponible, rediriger directement vers la page de connexion
                     if (response.result && response.result.url) {
-                        $('#loadingOverlay .loading-text').text('Redirection en cours...');
+                        console.log('Redirection vers:', response.result.url);
+                        $('#loadingOverlay .loading-text').text('Redirection vers la page de connexion...');
+                        // Utiliser replace pour éviter que l'utilisateur puisse revenir en arrière
                         setTimeout(function() {
-                            // Utiliser & si l'URL contient déjà un paramètre, sinon utiliser ?
-                            const separator = response.result.url.includes('?') ? '&' : '?';
-                            window.location.href = response.result.url + separator + 'welcome=1';
-                        }, 2000);
+                            // Rediriger directement vers la page de connexion
+                            window.location.replace(response.result.url);
+                        }, 1500);
                     } else {
                         // Sinon, faire du polling
                         checkOnboardingStatus(sessionId);
                     }
+                } else {
+                    console.error('Erreur onboarding:', response.message);
+                    $('#loadingOverlay').removeClass('active');
+                    alert('Erreur: ' + (response.message || 'Une erreur est survenue'));
+                    $('#submitBtn').prop('disabled', false).text('Finaliser');
                 }
             },
             error: function() {
@@ -145,16 +174,16 @@ $(document).ready(function() {
                 success: function(response) {
                     if (response.status === 'completed') {
                         clearInterval(checkInterval);
-                        // Rediriger vers le sous-domaine
+                        // Rediriger vers la page de connexion
                         if (response.result && response.result.url) {
+                            console.log('Redirection vers (polling):', response.result.url);
                             setTimeout(function() {
-                                // Utiliser & si l'URL contient déjà un paramètre, sinon utiliser ?
-                                const separator = response.result.url.includes('?') ? '&' : '?';
-                                window.location.href = response.result.url + separator + 'welcome=1';
+                                // Rediriger directement vers la page de connexion
+                                window.location.replace(response.result.url);
                             }, 1000);
                         } else {
                             $('#loadingOverlay').removeClass('active');
-                            alert('Onboarding terminé avec succès !');
+                            alert('Onboarding terminé avec succès ! Veuillez vous connecter.');
                         }
                     } else if (response.status === 'failed') {
                         clearInterval(checkInterval);
@@ -174,4 +203,5 @@ $(document).ready(function() {
     }
 });
 </script>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 @endpush

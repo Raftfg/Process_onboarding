@@ -60,12 +60,28 @@ class OnboardingApiController extends Controller
                 Session::put('onboarding_status', 'completed');
                 Session::put('onboarding_result', $result);
                 
-                // Connexion automatique de l'utilisateur admin après onboarding
-                $this->autoLoginAfterOnboarding($result);
+                // NE PLUS faire de connexion automatique
+                // L'utilisateur devra se connecter manuellement via la page de connexion
+                
+                // Modifier l'URL de redirection pour pointer vers la page de connexion
+                $subdomain = $result['subdomain'] ?? null;
+                if ($subdomain) {
+                    // Utiliser le format sous-domaine même en local
+                    if (config('app.env') === 'local') {
+                        $loginUrl = "http://{$subdomain}.localhost:8000/login";
+                    } else {
+                        $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
+                        $loginUrl = "https://{$subdomain}.{$baseDomain}/login";
+                    }
+                    
+                    $result['url'] = $loginUrl;
+                    
+                    Log::info('URL de redirection vers login:', ['url' => $loginUrl, 'subdomain' => $subdomain]);
+                }
                 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Onboarding terminé avec succès',
+                    'message' => 'Onboarding terminé avec succès. Veuillez vous connecter.',
                     'session_id' => $sessionId,
                     'result' => $result
                 ]);

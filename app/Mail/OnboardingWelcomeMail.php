@@ -23,12 +23,18 @@ class OnboardingWelcomeMail extends Mailable
 
     public function build()
     {
+        $adminName = trim(($this->adminData['admin_first_name'] ?? '') . ' ' . ($this->adminData['admin_last_name'] ?? ''));
+        if (empty($adminName)) {
+            $adminName = $this->adminData['admin_email'] ?? 'Utilisateur';
+        }
+        
         return $this->subject('Bienvenue sur MedKey - Votre compte est prêt !')
                     ->view('emails.onboarding-welcome')
                     ->with([
-                        'adminName' => $this->adminData['admin_first_name'] . ' ' . $this->adminData['admin_last_name'],
+                        'adminName' => $adminName,
                         'subdomain' => $this->subdomain,
                         'url' => $this->url,
+                        'adminEmail' => $this->adminData['admin_email'] ?? '',
                     ]);
     }
 }

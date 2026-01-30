@@ -4,9 +4,17 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
+use App\Services\RecaptchaService;
 
 class OnboardingController extends Controller
 {
+    protected $recaptchaService;
+
+    public function __construct(RecaptchaService $recaptchaService)
+    {
+        $this->recaptchaService = $recaptchaService;
+    }
+
     public function welcome()
     {
         Session::forget('onboarding_data');
@@ -48,6 +56,25 @@ class OnboardingController extends Controller
 
     public function storeStep2(Request $request)
     {
+        // Valider reCAPTCHA
+        $recaptchaToken = $request->input('g-recaptcha-response');
+        
+        \Illuminate\Support\Facades\Log::info('Tentative d\'onboarding avec reCAPTCHA', [
+            'has_token' => !empty($recaptchaToken),
+            'token_length' => strlen($recaptchaToken ?? ''),
+            'ip' => $request->ip(),
+        ]);
+        
+        if (!$this->recaptchaService->verify($recaptchaToken, $request->ip())) {
+            \Illuminate\Support\Facades\Log::warning('reCAPTCHA validation échouée pour l\'onboarding', [
+                'ip' => $request->ip(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'errors' => ['recaptcha' => ['La vérification reCAPTCHA a échoué. Veuillez réessayer.']]
+            ], 422);
+        }
+
         $validated = $request->validate([
             'admin_first_name' => 'required|string|max:255',
             'admin_last_name' => 'required|string|max:255',

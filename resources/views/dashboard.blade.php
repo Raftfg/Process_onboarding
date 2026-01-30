@@ -211,16 +211,20 @@
         <div class="header-content">
             <h1>MedKey - Tableau de bord</h1>
             <div class="header-actions">
+                @auth
                 <div class="user-info">
                     <div class="user-avatar">
-                        {{ strtoupper(substr(Auth::user()->name ?? 'A', 0, 1)) }}
+                        {{ strtoupper(substr(Auth::user()->name ?? Auth::user()->email ?? 'A', 0, 1)) }}
                     </div>
-                    <span>{{ Auth::user()->name ?? 'Administrateur' }}</span>
+                    <span>{{ Auth::user()->name ?? Auth::user()->email ?? 'Administrateur' }}</span>
                 </div>
                 <form method="POST" action="{{ route('logout') }}" style="display: inline;">
                     @csrf
                     <button type="submit" class="btn-logout">Déconnexion</button>
                 </form>
+                @else
+                <a href="{{ route('login') }}" class="btn-logout">Se connecter</a>
+                @endauth
             </div>
         </div>
     </div>
@@ -228,7 +232,7 @@
     <div class="container">
         @if(isset($onboarding))
             <div class="welcome-card">
-                <h2>Bienvenue, {{ Auth::user()->name ?? 'Administrateur' }} !</h2>
+                <h2>Bienvenue, {{ Auth::user()->name ?? Auth::user()->email ?? 'Administrateur' }} !</h2>
                 <p>Votre espace MedKey est maintenant configuré et prêt à l'emploi.</p>
             </div>
 
@@ -303,8 +307,11 @@
             </div>
         @else
             <div class="welcome-card">
-                <h2>Bienvenue, {{ Auth::user()->name ?? 'Administrateur' }} !</h2>
+                <h2>Bienvenue, {{ Auth::user()->name ?? Auth::user()->email ?? 'Administrateur' }} !</h2>
                 <p>Aucune information d'onboarding trouvée pour ce sous-domaine.</p>
+                @if(isset($subdomain))
+                <p style="margin-top: 10px; color: #666; font-size: 14px;">Sous-domaine: {{ $subdomain }}</p>
+                @endif
             </div>
         @endif
     </div>

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Webhook;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class WebhookService
@@ -14,15 +15,33 @@ class WebhookService
      */
     public function trigger(string $event, array $data): void
     {
-        // Récupérer tous les webhooks actifs pour cet événement
-        $webhooks = Webhook::where('is_active', true)
-            ->get()
-            ->filter(function ($webhook) use ($event) {
-                return $webhook->shouldTrigger($event);
-            });
+        try {
+            // Vérifier si la table webhooks existe avant d'essayer d'y accéder
+            if (!Schema::hasTable('webhooks')) {
+                Log::debug('Table webhooks n\'existe pas, webhooks ignorés', [
+                    'event' => $event
+                ]);
+                return;
+            }
 
-        foreach ($webhooks as $webhook) {
-            $this->sendWebhook($webhook, $event, $data);
+            // Récupérer tous les webhooks actifs pour cet événement
+            $webhooks = Webhook::where('is_active', true)
+                ->get()
+                ->filter(function ($webhook) use ($event) {
+                    return $webhook->shouldTrigger($event);
+                });
+
+            foreach ($webhooks as $webhook) {
+                $this->sendWebhook($webhook, $event, $data);
+            }
+        } catch (\Exception $e) {
+            // Logger l'erreur mais ne pas faire échouer le processus d'onboarding
+            Log::warning('Erreur lors du déclenchement des webhooks', [
+                'event' => $event,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Ne pas propager l'exception pour ne pas interrompre l'onboarding
         }
     }
 
@@ -81,14 +100,28 @@ class WebhookService
      */
     public function create(array $data): Webhook
     {
-        return Webhook::create([
-            'api_key_id' => $data['api_key_id'] ?? null,
-            'url' => $data['url'],
-            'events' => $data['events'] ?? [],
-            'is_active' => $data['is_active'] ?? true,
-            'secret' => $data['secret'] ?? Str::random(32),
-            'timeout' => $data['timeout'] ?? 30,
-            'retry_attempts' => $data['retry_attempts'] ?? 3,
-        ]);
+        try {
+            // Vérifier si la table webhooks existe avant d'essayer d'y accéder
+            if (!Schema::hasTable('webhooks')) {
+                throw new \Exception('La table webhooks n\'existe pas. Veuillez exécuter les migrations.');
+            }
+
+            return Webhook::create([
+                'api_key_id' => $data['api_key_id'] ?? null,
+                'url' => $data['url'],
+                'events' => $data['events'] ?? [],
+                'is_active' => $data['is_active'] ?? true,
+                'secret' => $data['secret'] ?? Str::random(32),
+                'timeout' => $data['timeout'] ?? 30,
+                'retry_attempts' => $data['retry_attempts'] ?? 3,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la création du webhook', [
+                'error' => $e->getMessage(),
+                'data' => $data
+            ]);
+            // Propager l'exception pour create() car c'est une opération explicite
+            throw $e;
+        }
     }
 }
