@@ -10,12 +10,28 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        // Récupérer le sous-domaine
-        if (config('app.env') === 'local' && $request->has('subdomain')) {
-            $subdomain = $request->get('subdomain');
+        // Récupérer le sous-domaine depuis l'URL
+        $host = $request->getHost();
+        $parts = explode('.', $host);
+        
+        // En local, le format est: subdomain.localhost
+        // En production, le format est: subdomain.domain.com
+        if (count($parts) >= 2) {
+            $subdomain = $parts[0];
+            // Si c'est localhost, on a le sous-domaine
+            if ($parts[1] === 'localhost' || (count($parts) >= 3 && $parts[1] !== 'www')) {
+                // Le sous-domaine est le premier élément
+            } else {
+                // En production, extraire le sous-domaine
+                $subdomain = $parts[0];
+            }
         } else {
-            $host = $request->getHost();
-            $subdomain = explode('.', $host)[0];
+            // Fallback: essayer depuis le paramètre (pour compatibilité)
+            $subdomain = $request->get('subdomain');
+        }
+        
+        if (!$subdomain) {
+            return redirect('/')->with('error', 'Sous-domaine non trouvé.');
         }
         
         // Récupérer les informations de l'onboarding
@@ -24,7 +40,7 @@ class DashboardController extends Controller
             ->first();
         
         if (!$onboarding) {
-            return redirect()->route('welcome', ['subdomain' => $subdomain])
+            return redirect(subdomain_url($subdomain, '/welcome'))
                 ->with('error', 'Aucune information d\'onboarding trouvée pour ce sous-domaine.');
         }
         

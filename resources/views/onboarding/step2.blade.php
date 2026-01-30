@@ -119,9 +119,8 @@ $(document).ready(function() {
                     if (response.result && response.result.url) {
                         $('#loadingOverlay .loading-text').text('Redirection en cours...');
                         setTimeout(function() {
-                            // Utiliser & si l'URL contient déjà un paramètre, sinon utiliser ?
-                            const separator = response.result.url.includes('?') ? '&' : '?';
-                            window.location.href = response.result.url + separator + 'welcome=1';
+                            // Rediriger directement vers le dashboard (l'utilisateur est déjà connecté)
+                            window.location.href = response.result.url;
                         }, 2000);
                     } else {
                         // Sinon, faire du polling
@@ -145,12 +144,11 @@ $(document).ready(function() {
                 success: function(response) {
                     if (response.status === 'completed') {
                         clearInterval(checkInterval);
-                        // Rediriger vers le sous-domaine
+                        // Rediriger vers le sous-domaine (l'utilisateur est déjà connecté)
                         if (response.result && response.result.url) {
                             setTimeout(function() {
-                                // Utiliser & si l'URL contient déjà un paramètre, sinon utiliser ?
-                                const separator = response.result.url.includes('?') ? '&' : '?';
-                                window.location.href = response.result.url + separator + 'welcome=1';
+                                // Rediriger directement vers le dashboard
+                                window.location.href = response.result.url;
                             }, 1000);
                         } else {
                             $('#loadingOverlay').removeClass('active');

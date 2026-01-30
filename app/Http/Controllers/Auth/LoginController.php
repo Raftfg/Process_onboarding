@@ -66,12 +66,11 @@ class LoginController extends Controller
             Log::info('Utilisateur connecté: ' . Auth::user()->email);
 
             // Rediriger vers le dashboard
-            $redirectUrl = route('dashboard');
             if ($subdomain) {
-                $redirectUrl .= (strpos($redirectUrl, '?') !== false ? '&' : '?') . 'subdomain=' . $subdomain;
+                return redirect(subdomain_url($subdomain, '/dashboard'));
             }
 
-            return redirect($redirectUrl);
+            return redirect()->route('dashboard');
         }
 
         return back()->withErrors([

@@ -20,23 +20,28 @@ class WelcomeController extends Controller
 
     public function index(Request $request)
     {
-        // Récupérer le sous-domaine
-        // En développement local, le sous-domaine peut être passé en paramètre
-        if (config('app.env') === 'local' && $request->has('subdomain')) {
-            $subdomain = $request->get('subdomain');
+        // Récupérer le sous-domaine depuis l'URL
+        $host = $request->getHost();
+        $parts = explode('.', $host);
+        
+        // En local, le format est: subdomain.localhost
+        // En production, le format est: subdomain.domain.com
+        if (count($parts) >= 2 && $parts[1] === 'localhost') {
+            $subdomain = $parts[0];
+        } elseif (count($parts) >= 3) {
+            // En production, extraire le sous-domaine
+            $subdomain = $parts[0];
         } else {
-            // En production, extraire depuis le host
-            $host = $request->getHost();
-            $subdomain = explode('.', $host)[0];
+            // Fallback: essayer depuis le paramètre (pour compatibilité)
+            $subdomain = $request->get('subdomain');
         }
         
         // Si l'utilisateur est déjà connecté, rediriger directement vers le dashboard
         if (Auth::check()) {
-            $dashboardUrl = route('dashboard');
             if ($subdomain) {
-                $dashboardUrl .= (strpos($dashboardUrl, '?') !== false ? '&' : '?') . 'subdomain=' . $subdomain;
+                return redirect(subdomain_url($subdomain, '/dashboard'));
             }
-            return redirect($dashboardUrl);
+            return redirect()->route('dashboard');
         }
         
         // Si c'est une redirection après onboarding et que l'utilisateur n'est pas connecté,
@@ -46,9 +51,7 @@ class WelcomeController extends Controller
             
             // Vérifier à nouveau si la connexion a réussi
             if (Auth::check()) {
-                $dashboardUrl = route('dashboard');
-                $dashboardUrl .= (strpos($dashboardUrl, '?') !== false ? '&' : '?') . 'subdomain=' . $subdomain;
-                return redirect($dashboardUrl);
+                return redirect(subdomain_url($subdomain, '/dashboard'));
             }
         }
         

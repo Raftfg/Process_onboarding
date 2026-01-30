@@ -85,12 +85,23 @@ MAIL_FROM_ADDRESS="noreply@medkey.com"
 MAIL_FROM_NAME="MedKey"
 ```
 
-7. **Démarrer le serveur de développement** :
+7. **Configurer Acrylic DNS Proxy (Windows uniquement, pour les sous-domaines locaux)** :
+```powershell
+# Exécutez en tant qu'administrateur
+.\scripts\setup-acrylic.ps1
+```
+👉 Voir [ACRYLIC_DNS_SETUP.md](ACRYLIC_DNS_SETUP.md) pour les instructions détaillées.
+
+8. **Démarrer le serveur de développement** :
 ```bash
-php artisan serve
+php artisan serve --host=0.0.0.0 --port=8000
 ```
 
-Accédez à `http://localhost:8000` pour commencer l'onboarding.
+**Important** : Utilisez `--host=0.0.0.0` pour que le serveur écoute sur toutes les interfaces (nécessaire pour les sous-domaines).
+
+Accédez à `http://localhost:8000` (ou `http://127.0.0.1:8000`) dans votre navigateur pour commencer l'onboarding.
+
+**Note** : N'utilisez pas `http://0.0.0.0:8000` dans le navigateur, cette adresse est uniquement pour la configuration du serveur.
 
 ## ⚙️ Configuration
 
@@ -102,6 +113,22 @@ Accédez à `http://localhost:8000` pour commencer l'onboarding.
 - `DB_ROOT_PASSWORD` : Mot de passe root MySQL
 
 ### Configuration des sous-domaines
+
+**Pour le développement local sur Windows :**
+
+Pour que les sous-domaines fonctionnent en local (ex: `http://tobi-melvin-1769757006.localhost:8000`), vous devez configurer Acrylic DNS Proxy qui supporte les wildcards DNS.
+
+👉 **Voir le guide complet : [ACRYLIC_DNS_SETUP.md](ACRYLIC_DNS_SETUP.md)**
+
+**Installation rapide :**
+```powershell
+# 1. Téléchargez Acrylic DNS Proxy depuis https://sourceforge.net/projects/acrylic/
+# 2. Installez Acrylic
+# 3. Exécutez le script de configuration (en tant qu'administrateur)
+.\scripts\setup-acrylic.ps1
+```
+
+**Pour la production :**
 
 Voir le fichier `SUBDOMAIN_SETUP.md` pour les instructions détaillées sur la configuration Apache/Nginx et DNS.
 

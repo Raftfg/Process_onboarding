@@ -172,27 +172,8 @@ class OnboardingService
 
     protected function getSubdomainUrl(string $subdomain): string
     {
-        // En développement local, utiliser le domaine principal avec un paramètre
-        // car le fichier hosts Windows ne supporte pas les wildcards DNS
-        if (config('app.env') === 'local') {
-            $baseUrl = config('app.url', 'http://127.0.0.1:8000');
-            
-            // S'assurer que l'URL inclut le port si on est en local
-            // Si l'URL ne contient pas de port, ajouter :8000 par défaut
-            if (parse_url($baseUrl, PHP_URL_PORT) === null) {
-                // Si c'est localhost ou 127.0.0.1 sans port, ajouter le port 8000
-                $parsedUrl = parse_url($baseUrl);
-                $host = $parsedUrl['host'] ?? '127.0.0.1';
-                $scheme = $parsedUrl['scheme'] ?? 'http';
-                $baseUrl = "{$scheme}://{$host}:8000";
-            }
-            
-            return "{$baseUrl}/welcome?subdomain={$subdomain}";
-        }
-        
-        // En production, utiliser le vrai sous-domaine
-        $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
-        return "https://{$subdomain}.{$baseDomain}";
+        // Utiliser la fonction helper pour générer l'URL avec sous-domaine
+        return subdomain_url($subdomain, '/dashboard');
     }
 
     protected function runMigrationsInTenantDatabase(): void

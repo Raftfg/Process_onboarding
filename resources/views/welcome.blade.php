@@ -118,9 +118,9 @@
             @endif
             
             @auth
-                <a href="{{ route('dashboard', ['subdomain' => $subdomain]) }}" class="btn">Accéder au tableau de bord</a>
+                <a href="{{ subdomain_url($subdomain, '/dashboard') }}" class="btn">Accéder au tableau de bord</a>
             @else
-                <a href="{{ route('login', ['subdomain' => $subdomain]) }}" class="btn">Accéder à mon espace</a>
+                <a href="{{ subdomain_url($subdomain, '/login') }}" class="btn">Accéder à mon espace</a>
             @endauth
         </div>
     </div>
