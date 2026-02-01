@@ -24,21 +24,31 @@ class WelcomeController extends Controller
         $host = $request->getHost();
         $parts = explode('.', $host);
         
+        // Déterminer si on est en local ou sur Laravel Cloud
+        $isLocal = config('app.env') === 'local';
+        $isLaravelCloud = str_contains($host, 'laravel.cloud');
+        
+        $subdomain = null;
+        
         // En local: format subdomain.localhost
-        // En production: format subdomain.domain.tld
-        if (config('app.env') === 'local' && count($parts) >= 2 && $parts[1] === 'localhost') {
+        if ($isLocal && count($parts) >= 2 && $parts[1] === 'localhost') {
             $subdomain = $parts[0];
-        } elseif (count($parts) >= 3) {
+        } 
+        // Sur Laravel Cloud: format subdomain.app-name.laravel.cloud (4+ parties)
+        // Le domaine principal est app-name.laravel.cloud (3 parties) - pas de sous-domaine
+        elseif ($isLaravelCloud && count($parts) >= 4) {
             $subdomain = $parts[0];
-        } else {
-            $subdomain = null;
+        }
+        // Autre production: format subdomain.domain.tld (3+ parties)
+        elseif (!$isLocal && !$isLaravelCloud && count($parts) >= 3) {
+            $subdomain = $parts[0];
         }
         
         // Si l'utilisateur est déjà connecté, rediriger directement vers le dashboard
         // MAIS seulement si on a un sous-domaine valide
         if (Auth::check() && $subdomain) {
             // Construire l'URL du dashboard avec le sous-domaine dans l'URL (sans paramètre)
-            if (config('app.env') === 'local') {
+            if ($isLocal) {
                 $dashboardUrl = "http://{$subdomain}.localhost:8000/dashboard";
             } else {
                 $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
@@ -51,7 +61,7 @@ class WelcomeController extends Controller
         // Si c'est une redirection après onboarding, rediriger vers la page de connexion
         // au lieu de tenter une connexion automatique
         if ($request->has('welcome') && $subdomain && !Auth::check()) {
-            if (config('app.env') === 'local') {
+            if ($isLocal) {
                 $loginUrl = "http://{$subdomain}.localhost:8000/login";
             } else {
                 $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
