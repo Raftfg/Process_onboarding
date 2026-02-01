@@ -116,16 +116,16 @@ Authorization: Bearer YOUR_API_KEY
 **Body:**
 ```json
 {
-  "hospital": {
-    "name": "Hôpital Central",
-    "address": "123 Rue de la Santé, Paris",
+  "organization": {
+    "name": "Ma Super Organisation",
+    "address": "123 Rue de la Tech, Paris",
     "phone": "+33 1 23 45 67 89",
-    "email": "contact@hopital-central.fr"
+    "email": "contact@super-org.com"
   },
   "admin": {
     "first_name": "Jean",
     "last_name": "Dupont",
-    "email": "admin@hopital-central.fr",
+    "email": "admin@super-org.com",
     "password": "SecurePassword123!"
   },
   "options": {
@@ -135,15 +135,15 @@ Authorization: Bearer YOUR_API_KEY
 }
 ```
 
-**Réponse (200 OK):**
+**Réponse (201 Created):**
 ```json
 {
   "success": true,
   "data": {
-    "subdomain": "hopital-central-1234567890",
-    "database_name": "akasigroup_hopital-central-1234567890",
-    "url": "https://hopital-central-1234567890.akasigroup.com",
-    "admin_email": "admin@hopital-central.fr",
+    "subdomain": "super-org-123",
+    "database_name": "akasigroup_super-org-123",
+    "url": "https://super-org-123.akasigroup.com",
+    "admin_email": "admin@super-org.com",
     "created_at": "2024-01-15T10:30:00Z"
   }
 }
@@ -155,7 +155,7 @@ Authorization: Bearer YOUR_API_KEY
   "success": false,
   "message": "Erreur de validation",
   "errors": {
-    "hospital.name": ["Le nom de l'hôpital est requis"]
+    "organization.name": ["Le nom de l'organisation est requis"]
   }
 }
 ```
@@ -196,13 +196,13 @@ Authorization: Bearer YOUR_API_KEY
 {
   "success": true,
   "data": {
-    "subdomain": "hopital-central-1234567890",
-    "hospital_name": "Hôpital Central",
-    "hospital_address": "123 Rue de la Santé, Paris",
-    "hospital_phone": "+33 1 23 45 67 89",
-    "hospital_email": "contact@hopital-central.fr",
-    "admin_email": "admin@hopital-central.fr",
-    "database_name": "akasigroup_hopital-central-1234567890",
+    "subdomain": "super-org-123",
+    "organization_name": "Ma Super Organisation",
+    "organization_address": "123 Rue de la Tech, Paris",
+    "organization_phone": "+33 1 23 45 67 89",
+    "organization_email": "contact@super-org.com",
+    "admin_email": "admin@super-org.com",
+    "database_name": "akasigroup_super-org-123",
     "status": "completed",
     "created_at": "2024-01-15T10:30:00Z"
   }
@@ -567,18 +567,22 @@ Content-Type: application/json
 }
 ```
 
-### Vérifier la signature
+### Vérifier la signature (SÉCURITÉ)
 
-Pour sécuriser vos webhooks, vérifiez la signature :
+Pour sécuriser vos webhooks et garantir que les appels proviennent bien d'Akasi Group, vous **devez** vérifier la signature HMAC-SHA256 envoyée dans le header `X-Webhook-Signature`.
 
+#### Exemple en PHP
 ```php
-// PHP
-$signature = hash_hmac('sha256', $request->getContent(), $webhookSecret);
-$receivedSignature = $request->header('X-Webhook-Signature');
+$webhookSecret = 'votre_secret_webhook';
+$payload = file_get_contents('php://input');
+$signatureHeader = $_SERVER['HTTP_X_WEBHOOK_SIGNATURE'] ?? '';
 
-if (!hash_equals($signature, $receivedSignature)) {
-    // Signature invalide, rejeter la requête
-    abort(401);
+$computedSignature = hash_hmac('sha256', $payload, $webhookSecret);
+
+if (!hash_equals($computedSignature, $signatureHeader)) {
+    // Signature invalide, rejeter la requête (401 Unauthorized)
+    http_response_code(401);
+    exit;
 }
 ```
 

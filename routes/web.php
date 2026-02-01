@@ -175,5 +175,11 @@ Route::prefix('admin')->group(function () {
         ]);
         Route::get('/tenants/{id}/stats', [App\Http\Controllers\Admin\TenantController::class, 'getStats'])->name('admin.tenants.stats');
         Route::post('/tenants/{id}/toggle-status', [App\Http\Controllers\Admin\TenantController::class, 'toggleStatus'])->name('admin.tenants.toggle-status');
+
+        // Gestion des Clés API
+        Route::get('/api-keys', [App\Http\Controllers\Admin\ApiKeyController::class, 'index'])->name('admin.api-keys.index');
+        Route::post('/api-keys', [App\Http\Controllers\Admin\ApiKeyController::class, 'store'])->name('admin.api-keys.store');
+        Route::post('/api-keys/{id}/toggle', [App\Http\Controllers\Admin\ApiKeyController::class, 'toggleStatus'])->name('admin.api-keys.toggle');
+        Route::delete('/api-keys/{id}', [App\Http\Controllers\Admin\ApiKeyController::class, 'destroy'])->name('admin.api-keys.destroy');
     });
 });

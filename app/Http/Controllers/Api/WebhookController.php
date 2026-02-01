@@ -27,7 +27,7 @@ class WebhookController extends Controller
         $validator = Validator::make($request->all(), [
             'url' => 'required|url|max:500',
             'events' => 'required|array',
-            'events.*' => 'string|in:onboarding.completed,onboarding.failed',
+            'events.*' => 'string|in:onboarding.completed,onboarding.failed,test',
             'api_key_id' => 'nullable|exists:api_keys,id',
             'timeout' => 'nullable|integer|min:5|max:120',
         ]);
@@ -118,6 +118,25 @@ class WebhookController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Webhook désactivé avec succès'
+        ]);
+    }
+
+    /**
+     * Déclencher un webhook de test
+     * 
+     * POST /api/webhooks/test
+     */
+    public function triggerTest(Request $request)
+    {
+        $this->webhookService->trigger('test', [
+            'message' => 'Ceci est un webhook de test pour Akasi Group Microservice',
+            'test_id' => Str::random(10),
+            'timestamp' => now()->toIso8601String()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Webhooks de test déclenchés'
         ]);
     }
 }

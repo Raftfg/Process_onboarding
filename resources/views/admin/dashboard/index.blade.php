@@ -37,7 +37,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Hôpital</th>
+                        <th>Organisation</th>
                         <th>Sous-domaine</th>
                         <th>Email Admin</th>
                         <th>Base de données</th>
@@ -49,7 +49,7 @@
                     @foreach($recentTenants as $tenant)
                         <tr>
                             <td>
-                                <strong>{{ $tenant->hospital_name }}</strong>
+                                <strong>{{ $tenant->organization_name }}</strong>
                             </td>
                             <td>
                                 <code>{{ $tenant->subdomain }}</code>

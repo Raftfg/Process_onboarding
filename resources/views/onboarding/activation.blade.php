@@ -33,6 +33,9 @@
 <div class="welcome-message">
     <h2>Finaliser votre inscription</h2>
     <p>Définissez votre mot de passe pour activer votre compte</p>
+    @if(isset($organizationName))
+        <p style="margin-top: 10px; color: #666;">Pour l'organisation : <strong>{{ $organizationName }}</strong></p>
+    @endif
 </div>
 
 @if(session('error') || $errors->has('activation'))

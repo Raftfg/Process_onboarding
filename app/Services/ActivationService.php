@@ -149,13 +149,34 @@ class ActivationService
                 throw new \Exception('Un utilisateur avec cet email existe déjà.');
             }
 
+            // Tenter de récupérer les informations de nom depuis la session d'onboarding
+            $adminName = $activation->organization_name;
+            try {
+                $onboardingSession = OnboardingSession::on('mysql')
+                    ->where('subdomain', $activation->subdomain)
+                    ->where('admin_email', $activation->email)
+                    ->first();
+                
+                if ($onboardingSession && (!empty($onboardingSession->admin_first_name) || !empty($onboardingSession->admin_last_name))) {
+                    $firstName = $onboardingSession->admin_first_name ?? '';
+                    $lastName = $onboardingSession->admin_last_name ?? '';
+                    $adminName = trim($firstName . ' ' . $lastName);
+                    
+                    if (empty($adminName)) {
+                        $adminName = $activation->organization_name;
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning("Impossible de récupérer le nom admin depuis la session: " . $e->getMessage());
+            }
+
             // Créer l'utilisateur administrateur
             $user = User::create([
-                'name' => $activation->organization_name, // Utiliser le nom de l'organisation comme nom par défaut
+                'name' => $adminName,
                 'email' => $activation->email,
                 'password' => Hash::make($password),
                 'email_verified_at' => now(),
-                'password_changed_at' => now(), // Marquer le mot de passe comme changé puisqu'il vient d'être défini
+                'password_changed_at' => now(),
                 'role' => 'admin',
                 'status' => 'active',
             ]);

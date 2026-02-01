@@ -23,6 +23,7 @@ Route::middleware(['api.auth'])->group(function () {
     Route::prefix('webhooks')->group(function () {
         Route::post('/register', [App\Http\Controllers\Api\WebhookController::class, 'register'])->name('api.webhooks.register');
         Route::get('/', [App\Http\Controllers\Api\WebhookController::class, 'index'])->name('api.webhooks.index');
+        Route::post('/test', [App\Http\Controllers\Api\WebhookController::class, 'triggerTest'])->name('api.webhooks.test');
         Route::delete('/{id}', [App\Http\Controllers\Api\WebhookController::class, 'destroy'])->name('api.webhooks.destroy');
     });
 });

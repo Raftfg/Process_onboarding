@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\OnboardingService;
 use App\Services\TenantService;
+use App\Services\ActivationService;
+use App\Mail\ActivationMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Mail;
 
 class PublicOnboardingController extends Controller
 {
@@ -29,17 +32,24 @@ class PublicOnboardingController extends Controller
     {
         // Valider les données
         $validator = Validator::make($request->all(), [
-            'hospital.name' => 'required|string|max:255',
-            'hospital.address' => 'nullable|string|max:500',
-            'hospital.phone' => 'nullable|string|max:20',
-            'hospital.email' => 'nullable|email|max:255',
-            'admin.first_name' => 'required|string|max:255',
-            'admin.last_name' => 'required|string|max:255',
-            'admin.email' => 'required|email|max:255',
-            'admin.password' => 'required|string|min:8',
+            'organization.name' => 'required|string|max:255',
+            'organization.address' => 'nullable|string|max:500',
+            'organization.phone' => 'nullable|string|max:20',
+            'organization.email' => 'nullable|email|max:255',
+            'admin.first_name' => 'nullable|string|max:255',
+            'admin.last_name' => 'nullable|string|max:255',
+            'admin.email' => 'nullable|email|max:255',
+            'admin.password' => 'nullable|string|min:8',
             'options.send_welcome_email' => 'nullable|boolean',
             'options.auto_login' => 'nullable|boolean',
         ]);
+
+        // Validation personnalisée pour s'assurer d'avoir au moins un email
+        $validator->after(function ($validator) use ($request) {
+            if (!$request->input('admin.email') && !$request->input('organization.email')) {
+                $validator->errors()->add('email', 'Une adresse email est requise (dans organization.email ou admin.email)');
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json([
@@ -53,10 +63,10 @@ class PublicOnboardingController extends Controller
             // Préparer les données au format attendu par OnboardingService
             $onboardingData = [
                 'step1' => [
-                    'hospital_name' => $request->input('hospital.name'),
-                    'hospital_address' => $request->input('hospital.address'),
-                    'hospital_phone' => $request->input('hospital.phone'),
-                    'hospital_email' => $request->input('hospital.email'),
+                    'organization_name' => $request->input('organization.name'),
+                    'organization_address' => $request->input('organization.address'),
+                    'organization_phone' => $request->input('organization.phone'),
+                    'organization_email' => $request->input('organization.email'),
                 ],
                 'step2' => [
                     'admin_first_name' => $request->input('admin.first_name'),
@@ -67,18 +77,30 @@ class PublicOnboardingController extends Controller
             ];
 
             // Traiter l'onboarding
-            $result = $this->onboardingService->processOnboarding($onboardingData);
+            $email = $onboardingData['step2']['admin_email'] ?? $onboardingData['step1']['organization_email'];
+            $organizationName = $onboardingData['step1']['organization_name'];
+            $metadata = $request->input('metadata', []);
+            $result = $this->onboardingService->processOnboarding($email, $organizationName, $metadata);
+
+            // Si des données d'admin supplémentaires étaient fournies, on pourrait les mettre à jour ici
+            $this->updateAdminInfoIfProvided($result['subdomain'], $onboardingData['step2']);
 
             // Connexion automatique si demandée
             if ($request->input('options.auto_login', false)) {
                 $this->autoLoginAfterOnboarding($result);
             }
 
-            // Envoyer l'email de bienvenue si demandé
+            // Envoyer l'email d'activation si demandé (activé par défaut)
             $sendEmail = $request->input('options.send_welcome_email', true);
-            if (!$sendEmail) {
-                // Ne pas envoyer l'email (déjà envoyé dans processOnboarding, mais on peut le désactiver)
-                // Note: Pour une vraie désactivation, il faudrait modifier OnboardingService
+            if ($sendEmail) {
+                try {
+                    Mail::to($email)->send(
+                        new ActivationMail($email, $organizationName, $result['activation_token'])
+                    );
+                    Log::info("Email d'activation envoyé via API pour: {$email}");
+                } catch (\Exception $e) {
+                    Log::error("Échec de l'envoi de l'email d'activation via API: " . $e->getMessage());
+                }
             }
 
             return response()->json([
@@ -87,7 +109,7 @@ class PublicOnboardingController extends Controller
                     'subdomain' => $result['subdomain'],
                     'database_name' => $result['database'],
                     'url' => $result['url'],
-                    'admin_email' => $result['admin_email'],
+                    'admin_email' => $result['email'],
                     'created_at' => now()->toIso8601String()
                 ]
             ], 201);
@@ -164,10 +186,10 @@ class PublicOnboardingController extends Controller
                 'success' => true,
                 'data' => [
                     'subdomain' => $onboarding->subdomain,
-                    'hospital_name' => $onboarding->hospital_name,
-                    'hospital_address' => $onboarding->hospital_address,
-                    'hospital_phone' => $onboarding->hospital_phone,
-                    'hospital_email' => $onboarding->hospital_email,
+                    'organization_name' => $onboarding->organization_name,
+                    'organization_address' => $onboarding->organization_address,
+                    'organization_phone' => $onboarding->organization_phone,
+                    'organization_email' => $onboarding->organization_email,
                     'admin_email' => $onboarding->admin_email,
                     'database_name' => $onboarding->database_name,
                     'status' => $onboarding->status,
@@ -216,6 +238,24 @@ class PublicOnboardingController extends Controller
             }
         } catch (\Exception $e) {
             Log::error('Erreur lors de la connexion automatique: ' . $e->getMessage());
+        }
+    }
+    /**
+     * Met à jour les informations de l'administrateur si elles sont fournies via l'API
+     */
+    protected function updateAdminInfoIfProvided(string $subdomain, array $adminData): void
+    {
+        try {
+            $session = \App\Models\OnboardingSession::where('subdomain', $subdomain)->first();
+            if ($session) {
+                $session->update([
+                    'admin_first_name' => $adminData['admin_first_name'] ?? $session->admin_first_name,
+                    'admin_last_name' => $adminData['admin_last_name'] ?? $session->admin_last_name,
+                ]);
+                Log::info("Informations admin mises à jour pour le tenant: {$subdomain}");
+            }
+        } catch (\Exception $e) {
+            Log::warning("Erreur lors de la mise à jour des infos admin: " . $e->getMessage());
         }
     }
 }

@@ -319,6 +319,7 @@ class OnboardingController extends Controller
         return view('onboarding.activation', [
             'token' => $token,
             'email' => $email,
+            'organizationName' => $activation->organization_name ?? null,
         ]);
     }
 

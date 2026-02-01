@@ -33,7 +33,7 @@ class OnboardingService
      * Traite l'onboarding avec seulement email et organisation
      * Ne crée pas l'utilisateur admin (sera fait lors de l'activation)
      */
-    public function processOnboarding(string $email, string $organizationName): array
+    public function processOnboarding(string $email, string $organizationName, array $metadata = []): array
     {
         try {
             // Vérifier que l'email est unique
@@ -59,7 +59,7 @@ class OnboardingService
             $this->createSubdomain($subdomain);
             
             // Enregistrer la session d'onboarding (dans la base principale)
-            $this->saveOnboardingSessionNew($email, $organizationName, $slug, $subdomain, $databaseName);
+            $this->saveOnboardingSessionNew($email, $organizationName, $slug, $subdomain, $databaseName, $metadata);
             
             // Basculer vers la base du tenant
             $this->tenantService->switchToTenantDatabase($databaseName);
@@ -89,6 +89,7 @@ class OnboardingService
                 'email' => $email,
                 'organization_name' => $organizationName,
                 'activation_token' => $activationToken,
+                'metadata' => $metadata,
             ];
 
             // Déclencher le webhook d'onboarding complété
@@ -98,6 +99,7 @@ class OnboardingService
                 'organization_name' => $organizationName,
                 'email' => $email,
                 'url' => $result['url'],
+                'metadata' => $metadata,
             ]);
 
             return $result;
@@ -120,7 +122,7 @@ class OnboardingService
     /**
      * Enregistre la session d'onboarding avec les nouvelles données (email + organisation uniquement)
      */
-    protected function saveOnboardingSessionNew(string $email, string $organizationName, string $slug, string $subdomain, string $databaseName): void
+    protected function saveOnboardingSessionNew(string $email, string $organizationName, string $slug, string $subdomain, string $databaseName, array $metadata = []): void
     {
         try {
             // Vérifier si un enregistrement avec ce sous-domaine existe déjà
@@ -132,12 +134,13 @@ class OnboardingService
                 // mais ne sont plus collectés dans le nouveau flux. On les met à jour seulement s'ils sont vides.
                 $updateData = [
                     'session_id' => session()->getId(),
-                    'hospital_name' => $organizationName,
+                    'organization_name' => $organizationName,
                     'slug' => $slug,
                     'admin_email' => $email,
                     'database_name' => $databaseName,
                     'status' => 'pending_activation', // Statut en attente d'activation
                     'completed_at' => null,
+                    'metadata' => $metadata,
                 ];
                 
                 // Ajouter les champs requis seulement s'ils sont vides
@@ -156,7 +159,7 @@ class OnboardingService
                 // mais ne sont plus collectés dans le nouveau flux. On utilise des valeurs par défaut.
                 $session = OnboardingSession::on('mysql')->create([
                     'session_id' => session()->getId(),
-                    'hospital_name' => $organizationName,
+                    'organization_name' => $organizationName,
                     'slug' => $slug,
                     'admin_first_name' => 'Admin', // Valeur par défaut, sera mis à jour lors de l'activation
                     'admin_last_name' => 'User', // Valeur par défaut, sera mis à jour lors de l'activation
@@ -165,6 +168,7 @@ class OnboardingService
                     'database_name' => $databaseName,
                     'status' => 'pending_activation', // Statut en attente d'activation
                     'completed_at' => null,
+                    'metadata' => $metadata,
                 ]);
                 Log::info("Nouvelle session d'onboarding créée pour: {$subdomain} (ID: {$session->id})");
             }
@@ -232,7 +236,7 @@ class OnboardingService
     protected function validateOrganizationNameUnique(string $organizationName): void
     {
         $exists = OnboardingSession::on('mysql')
-            ->where('hospital_name', $organizationName)
+            ->where('organization_name', $organizationName)
             ->exists();
         
         if ($exists) {
@@ -240,13 +244,10 @@ class OnboardingService
         }
     }
     
-    /**
-     * Génère un slug unique basé sur le nom de l'hôpital
-     */
-    protected function generateUniqueSlug(string $hospitalName): string
+    protected function generateUniqueSlug(string $organizationName): string
     {
-        // Nettoyer et formater le nom de l'hôpital
-        $slug = Str::slug($hospitalName, '-', 'fr');
+        // Nettoyer et formater le nom de l'organisation
+        $slug = Str::slug($organizationName, '-', 'fr');
         
         // Limiter la longueur à 30 caractères pour éviter des slugs trop longs
         $slug = substr($slug, 0, 30);
@@ -256,7 +257,7 @@ class OnboardingService
         
         // Si le slug est vide après nettoyage, utiliser un nom par défaut
         if (empty($slug)) {
-            $slug = 'hopital';
+            $slug = 'org';
         }
         
         // Générer un slug de base

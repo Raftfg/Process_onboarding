@@ -8,22 +8,24 @@ class OnboardingSession extends Model
 {
     protected $fillable = [
         'session_id',
-        'hospital_name',
+        'organization_name',
         'slug',
-        'hospital_address',
-        'hospital_phone',
-        'hospital_email',
+        'organization_address',
+        'organization_phone',
+        'organization_email',
         'admin_first_name',
         'admin_last_name',
         'admin_email',
         'subdomain',
         'database_name',
         'status',
+        'metadata',
         'completed_at'
     ];
 
     protected $casts = [
         'completed_at' => 'datetime',
+        'metadata' => 'array',
     ];
 
     /**

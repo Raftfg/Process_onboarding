@@ -260,6 +260,10 @@
                 <a href="{{ route('admin.tenants.index') }}" class="nav-item {{ request()->routeIs('admin.tenants.*') ? 'active' : '' }}">
                     <i>🏥</i> Tenants
                 </a>
+                
+                <a href="{{ route('admin.api-keys.index') }}" class="nav-item {{ request()->routeIs('admin.api-keys.*') ? 'active' : '' }}">
+                    <i>🔑</i> Clés API
+                </a>
             </nav>
             
             <div style="position: absolute; bottom: 20px; left: 20px; right: 20px;">

@@ -40,18 +40,18 @@ paths:
                 - hospital
                 - admin
               properties:
-                hospital:
+                organization:
                   type: object
                   required:
                     - name
                   properties:
                     name:
                       type: string
-                      example: Hôpital Central
+                      example: Boulangerie Moderne
                     address:
                       type: string
                       nullable: true
-                      example: 123 Rue de la Santé, Paris
+                      example: 123 Rue de la Tech, Paris
                     phone:
                       type: string
                       nullable: true
@@ -60,7 +60,7 @@ paths:
                       type: string
                       format: email
                       nullable: true
-                      example: contact@hopital-central.fr
+                      example: contact@super-org.com
                 admin:
                   type: object
                   required:
@@ -78,7 +78,7 @@ paths:
                     email:
                       type: string
                       format: email
-                      example: admin@hopital-central.fr
+                      example: admin@super-org.com
                     password:
                       type: string
                       format: password
@@ -109,16 +109,16 @@ paths:
                     properties:
                       subdomain:
                         type: string
-                        example: hopital-central-1234567890
+                        example: super-org-123
                       database_name:
                         type: string
-                        example: akasigroup_hopital-central-1234567890
+                        example: akasigroup_super-org-123
                       url:
                         type: string
-                        example: https://hopital-central-1234567890.akasigroup.com
+                        example: https://super-org-123.akasigroup.com
                       admin_email:
                         type: string
-                        example: admin@hopital-central.fr
+                        example: admin@super-org.com
                       created_at:
                         type: string
                         format: date-time
@@ -218,19 +218,19 @@ paths:
                     properties:
                       subdomain:
                         type: string
-                      hospital_name:
-                        type: string
-                      hospital_address:
-                        type: string
-                        nullable: true
-                      hospital_phone:
-                        type: string
-                        nullable: true
-                      hospital_email:
-                        type: string
-                        nullable: true
-                      admin_email:
-                        type: string
+                    organization_name:
+                      type: string
+                    organization_address:
+                      type: string
+                      nullable: true
+                    organization_phone:
+                      type: string
+                      nullable: true
+                    organization_email:
+                      type: string
+                      nullable: true
+                    admin_email:
+                      type: string
                       database_name:
                         type: string
                       status:

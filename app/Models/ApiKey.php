@@ -36,7 +36,7 @@ class ApiKey extends Model
     public static function generate(string $name, array $options = []): array
     {
         // Générer une clé aléatoire sécurisée
-        $key = 'mk_' . Str::random(48);
+        $key = 'ak_' . Str::random(48);
         $keyPrefix = substr($key, 0, 8);
 
         // Hasher la clé pour le stockage
