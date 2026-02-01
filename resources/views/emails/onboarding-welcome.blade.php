@@ -14,7 +14,7 @@
             padding: 20px;
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
             color: white;
             padding: 30px;
             text-align: center;
@@ -28,7 +28,7 @@
         .button {
             display: inline-block;
             padding: 12px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
             color: white;
             text-decoration: none;
             border-radius: 5px;
@@ -39,12 +39,12 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Bienvenue sur MedKey !</h1>
+            <h1>Bienvenue sur Akasi Group !</h1>
         </div>
         <div class="content">
             <p>Bonjour {{ $adminName }},</p>
             
-            <p>Votre compte MedKey a été créé avec succès !</p>
+            <p>Votre compte Akasi Group a été créé avec succès !</p>
             
             <p><strong>Votre sous-domaine:</strong> {{ $subdomain }}</p>
             
@@ -59,7 +59,7 @@
                 <a href="{{ $url }}" style="color: #667eea;">{{ $url }}</a>
             </p>
             
-            <p style="margin-top: 30px;">Cordialement,<br>L'équipe MedKey</p>
+            <p style="margin-top: 30px;">Cordialement,<br>L'équipe Akasi Group</p>
         </div>
     </div>
 </body>

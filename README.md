@@ -1,6 +1,6 @@
-# MedKey - Système d'Onboarding Multi-Tenant
+# Akasi Group - Système d'Onboarding Multi-Tenant
 
-Système d'onboarding réutilisable pour MedKey permettant de créer automatiquement des sous-domaines et bases de données pour chaque nouvel hôpital.
+Système d'onboarding réutilisable pour Akasi Group permettant de créer automatiquement des sous-domaines et bases de données pour chaque nouvel hôpital.
 
 ## 🎯 Intégration dans votre projet
 
@@ -15,7 +15,7 @@ Système d'onboarding réutilisable pour MedKey permettant de créer automatique
 **Démarrage rapide :**
 ```javascript
 // Exemple JavaScript
-const response = await fetch('https://onboarding.medkey.com/api/onboarding/create', {
+const response = await fetch('https://onboarding.akasigroup.com/api/onboarding/create', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -81,8 +81,8 @@ MAIL_HOST=smtp.mailtrap.io
 MAIL_PORT=2525
 MAIL_USERNAME=votre_username
 MAIL_PASSWORD=votre_password
-MAIL_FROM_ADDRESS="noreply@medkey.com"
-MAIL_FROM_NAME="MedKey"
+MAIL_FROM_ADDRESS="noreply@akasigroup.com"
+MAIL_FROM_NAME="Akasi Group"
 ```
 
 7. **Démarrer le serveur de développement** :
@@ -96,7 +96,7 @@ Accédez à `http://localhost:8000` pour commencer l'onboarding.
 
 ### Variables d'environnement importantes
 
-- `SUBDOMAIN_BASE_DOMAIN` : Domaine de base pour les sous-domaines (ex: medkey.local)
+- `SUBDOMAIN_BASE_DOMAIN` : Domaine de base pour les sous-domaines (ex: akasigroup.local)
 - `SUBDOMAIN_WEB_ROOT` : Chemin racine web pour les sous-domaines
 - `DB_ROOT_USERNAME` : Nom d'utilisateur root MySQL pour créer les bases de données
 - `DB_ROOT_PASSWORD` : Mot de passe root MySQL
@@ -179,7 +179,7 @@ Le système utilise un design moderne avec :
 
 - **Production** : Vous devrez implémenter la création réelle des vhosts Apache/Nginx (voir `SUBDOMAIN_SETUP.md`)
 - **DNS** : La gestion DNS doit être configurée selon votre infrastructure
-- **Base de données** : Les bases de données sont créées avec le préfixe `medkey_`
+- **Base de données** : Les bases de données sont créées avec le préfixe `akasigroup_`
 - **Sous-domaines** : Les sous-domaines sont générés à partir du nom de l'hôpital (slugifié)
 
 ## 🧪 Tests

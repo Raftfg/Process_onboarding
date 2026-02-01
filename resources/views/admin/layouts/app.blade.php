@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Administration') - MedKey</title>
+    <title>@yield('title', 'Administration') - Akasi Group</title>
     
     <style>
         :root {
@@ -249,7 +249,7 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <h1>MedKey Admin</h1>
+                <h1>Akasi Group Admin</h1>
             </div>
             
             <nav class="sidebar-nav">

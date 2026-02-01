@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'MedKey - Onboarding')</title>
+    <title>@yield('title', 'Akasi Group - Onboarding')</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         * {
             margin: 0;
@@ -15,7 +16,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -55,10 +56,7 @@
         .logo h1 {
             font-size: 2.5rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #00286f;
         }
 
         .form-group {
@@ -111,7 +109,7 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
             color: white;
         }
 
@@ -192,7 +190,7 @@
         }
 
         .step.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
             color: white;
         }
 
@@ -209,7 +207,7 @@
         }
 
         .step-line.completed {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
         }
 
         .welcome-message {
@@ -246,6 +244,27 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Succès',
+                    text: "{{ session('success') }}",
+                    confirmButtonColor: '#00286f'
+                });
+            @endif
+
+            @if(session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erreur',
+                    text: "{{ session('error') }}",
+                    confirmButtonColor: '#00286f'
+                });
+            @endif
+        });
+    </script>
     @stack('scripts')
 </body>
 </html>

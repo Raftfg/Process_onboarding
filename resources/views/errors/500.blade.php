@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Erreur - MedKey</title>
+    <title>Erreur - Akasi Group</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -57,7 +57,7 @@
         .btn {
             display: inline-block;
             padding: 14px 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
             color: white;
             text-decoration: none;
             border-radius: 10px;

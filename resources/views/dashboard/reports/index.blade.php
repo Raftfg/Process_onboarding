@@ -41,7 +41,14 @@
 @push('scripts')
 <script>
     // Graphique d'activité sur 30 jours
-    axios.get('{{ route("dashboard.stats.chart") }}?period=month')
+    @php
+        $chartUrl = route('dashboard.stats.chart') . '?period=month';
+        if (request()->has('auto_login_token')) {
+            $token = request()->query('auto_login_token');
+            $chartUrl .= '&auto_login_token=' . $token;
+        }
+    @endphp
+    axios.get('{{ $chartUrl }}')
         .then(response => {
             const ctx = document.getElementById('activityChart30');
             new Chart(ctx, {

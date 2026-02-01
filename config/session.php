@@ -8,7 +8,7 @@ return [
     'expire_on_close' => false,
     'encrypt' => env('SESSION_ENCRYPT', false),
     'files' => storage_path('framework/sessions'),
-    'connection' => env('SESSION_CONNECTION'),
+    'connection' => 'central',
     'table' => 'sessions',
     'store' => env('SESSION_STORE'),
     'lottery' => [2, 100],
@@ -17,7 +17,7 @@ return [
         Str::slug(env('APP_NAME', 'laravel'), '_').'_session'
     ),
     'path' => env('SESSION_PATH', '/'),
-    'domain' => env('SESSION_DOMAIN'),
+    'domain' => env('SESSION_DOMAIN', null),
     'secure' => env('SESSION_SECURE_COOKIE'),
     'http_only' => true,
     'same_site' => 'lax',

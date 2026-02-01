@@ -50,20 +50,20 @@ Pour éviter d'ajouter chaque sous-domaine manuellement, vous pouvez utiliser un
 
 ### Option 3 : Utiliser un domaine local personnalisé
 
-Vous pouvez aussi utiliser un domaine local comme `medkey.local` :
+Vous pouvez aussi utiliser un domaine local comme `akasigroup.local` :
 
 1. Dans votre fichier hosts, ajoutez :
    ```
-   127.0.0.1 medkey.local
-   127.0.0.1 *.medkey.local
+   127.0.0.1 akasigroup.local
+   127.0.0.1 *.akasigroup.local
    ```
 
 2. Modifiez `.env` :
    ```
-   SUBDOMAIN_BASE_DOMAIN=medkey.local
+   SUBDOMAIN_BASE_DOMAIN=akasigroup.local
    ```
 
-3. Les URLs seront alors : `http://hopital-cotonou-1769760633.medkey.local:8000`
+3. Les URLs seront alors : `http://hopital-cotonou-1769760633.akasigroup.local:8000`
 
 ## Vérification
 

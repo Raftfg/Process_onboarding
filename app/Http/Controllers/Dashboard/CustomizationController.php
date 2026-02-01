@@ -37,53 +37,46 @@ class CustomizationController extends Controller
      */
     public function updateBranding(Request $request)
     {
-        // Vérifier et créer la table tenant_settings si elle n'existe pas
-        $this->ensureTenantSettingsTableExists();
-        
-        $validated = $request->validate([
-            'primary_color' => 'required|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'secondary_color' => 'required|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'accent_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'background_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'organization_name' => 'nullable|string|max:255',
-        ]);
+        try {
+            
+            // Vérifier et créer la table tenant_settings si elle n'existe pas
+            $this->ensureTenantSettingsTableExists();
+            
+            $validated = $request->validate([
+                'primary_color' => 'required|string|regex:/^#[0-9A-Fa-f]{6}$/',
+                'secondary_color' => 'required|string|regex:/^#[0-9A-Fa-f]{6}$/',
+                'accent_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+                'background_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+                'organization_name' => 'nullable|string|max:255',
+            ]);
 
-        foreach ($validated as $key => $value) {
-            if ($value !== null) {
-                try {
+            foreach ($validated as $key => $value) {
+                if ($value !== null) {
                     $this->customizationService->setSetting($key, $value, 'branding');
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error("Erreur lors de l'enregistrement de {$key}: " . $e->getMessage());
-                    return back()->with('error', "Erreur lors de l'enregistrement de {$key}: " . $e->getMessage());
                 }
             }
-        }
 
-        // Invalider le cache de manière spécifique pour cette base
-        try {
+            // Invalider le cache de manière exhaustive pour cette base
             $connection = \Illuminate\Support\Facades\DB::connection();
             $databaseName = $connection->getDatabaseName();
             
-            // Invalider tous les caches liés à cette base
+            // Vider tous les caches liés au branding
             \Illuminate\Support\Facades\Cache::forget("tenant_settings_group_branding_{$databaseName}");
             \Illuminate\Support\Facades\Cache::forget("tenant_settings_all_{$databaseName}");
             
-            // Invalider aussi les caches individuels
-            foreach ($validated as $key => $value) {
-                if ($value !== null) {
-                    \Illuminate\Support\Facades\Cache::forget("tenant_setting_{$key}_{$databaseName}");
-                }
+            foreach (['primary_color', 'secondary_color', 'accent_color', 'background_color', 'organization_name', 'logo_url', 'favicon_url'] as $key) {
+                \Illuminate\Support\Facades\Cache::forget("tenant_setting_{$key}_{$databaseName}");
             }
             
-            \Illuminate\Support\Facades\Log::info("Cache invalidé pour la base {$databaseName}");
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Erreur lors de l'invalidation du cache: " . $e->getMessage());
-            // En cas d'erreur, vider tout le cache
-            \Illuminate\Support\Facades\Cache::flush();
-        }
+            \App\Models\TenantSetting::clearCache();
 
-        return redirect()->route('dashboard.customization')
-            ->with('success', 'Branding mis à jour avec succès. Rechargez la page pour voir les changements.');
+            return redirect()->route('dashboard.customization')
+                ->with('success', 'Branding mis à jour avec succès. Les changements sont appliqués immédiatement.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Erreur dans updateBranding: " . $e->getMessage());
+            $userMessage = \App\Helpers\ErrorFormatter::formatException($e);
+            return back()->with('error', $userMessage);
+        }
     }
 
     /**
@@ -96,7 +89,6 @@ class CustomizationController extends Controller
             $connectionName = $connection->getName();
             
             if (!\Illuminate\Support\Facades\Schema::connection($connectionName)->hasTable('tenant_settings')) {
-                \Illuminate\Support\Facades\Log::info("Création de la table tenant_settings dans la base: " . $connection->getDatabaseName());
                 
                 \Illuminate\Support\Facades\Schema::connection($connectionName)->create('tenant_settings', function ($table) {
                     $table->id();
@@ -106,8 +98,6 @@ class CustomizationController extends Controller
                     $table->timestamps();
                     $table->index(['group', 'key']);
                 });
-                
-                \Illuminate\Support\Facades\Log::info("Table tenant_settings créée avec succès");
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Erreur lors de la création de la table tenant_settings: " . $e->getMessage());
@@ -191,6 +181,25 @@ class CustomizationController extends Controller
         ]);
 
         $subdomain = Session::get('current_subdomain');
+        
+        // Fallback: extraire le sous-domaine depuis l'hôte si absent de la session
+        if (!$subdomain) {
+            $host = $request->getHost();
+            $parts = explode('.', $host);
+            if (config('app.env') === 'local') {
+                if (count($parts) >= 2 && $parts[1] === 'localhost') {
+                    $subdomain = $parts[0];
+                }
+            } else {
+                if (count($parts) >= 3) {
+                    $subdomain = $parts[0];
+                }
+            }
+            if ($subdomain) {
+                Session::put('current_subdomain', $subdomain);
+            }
+        }
+        
         if (!$subdomain) {
             return back()->with('error', 'Impossible de déterminer le sous-domaine');
         }
@@ -201,11 +210,29 @@ class CustomizationController extends Controller
 
         try {
             $url = $this->customizationService->uploadLogo($request->file('logo'), $subdomain);
+            
+            // Vider le cache de manière agressive
+            try {
+                $connection = \Illuminate\Support\Facades\DB::connection();
+                $databaseName = $connection->getDatabaseName();
+                
+                // Vider tous les caches liés au branding
+                \Illuminate\Support\Facades\Cache::forget("tenant_settings_group_branding_{$databaseName}");
+                \Illuminate\Support\Facades\Cache::forget("tenant_setting_logo_url_{$databaseName}");
+                \Illuminate\Support\Facades\Cache::forget("tenant_settings_all_{$databaseName}");
+                
+                \Illuminate\Support\Facades\Cache::forget("tenant_settings_all_{$databaseName}");
+            } catch (\Exception $cacheException) {
+                // Ignore cache errors
+            }
+            
+            // Vider aussi le cache global
             \App\Models\TenantSetting::clearCache();
 
             return redirect()->route('dashboard.customization')
-                ->with('success', 'Logo uploadé avec succès');
+                ->with('success', 'Logo uploadé avec succès. URL: ' . $url);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Erreur lors de l'upload du logo: " . $e->getMessage());
             return back()->with('error', 'Erreur lors de l\'upload du logo: ' . $e->getMessage());
         }
     }

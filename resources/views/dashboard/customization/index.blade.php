@@ -70,5 +70,13 @@
             activeButton.style.borderBottomColor = 'var(--primary-color)';
             activeButton.style.color = 'var(--primary-color)';
         }
+        
+        // Mettre à jour les variables CSS après modification du branding
+        @if(session('success'))
+            // Forcer le rechargement complet de la page après 500ms pour appliquer les nouvelles couleurs
+            setTimeout(function() {
+                window.location.reload(true);
+            }, 500);
+        @endif
     </script>
 @endsection

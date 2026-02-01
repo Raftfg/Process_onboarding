@@ -1,6 +1,6 @@
 # Guide d'Intégration - Microservice d'Onboarding Multi-Tenant
 
-Ce guide explique comment intégrer le microservice d'onboarding MedKey dans votre projet, que ce soit une application Laravel, React, Vue, ou toute autre technologie.
+Ce guide explique comment intégrer le microservice d'onboarding Akasi Group dans votre projet, que ce soit une application Laravel, React, Vue, ou toute autre technologie.
 
 ## 📋 Table des matières
 
@@ -45,8 +45,8 @@ Aucune installation nécessaire ! Utilisez simplement les endpoints API REST.
 
 ```bash
 # Cloner le repository
-git clone https://github.com/votre-org/medkey-onboarding.git
-cd medkey-onboarding
+git clone https://github.com/votre-org/akasigroup-onboarding.git
+cd akasigroup-onboarding
 
 # Installer les dépendances
 composer install
@@ -70,7 +70,7 @@ php artisan serve
 ### Base URL
 
 ```
-Production: https://onboarding.medkey.com/api
+Production: https://onboarding.akasigroup.com/api
 Développement: http://localhost:8000/api
 ```
 
@@ -141,8 +141,8 @@ Authorization: Bearer YOUR_API_KEY
   "success": true,
   "data": {
     "subdomain": "hopital-central-1234567890",
-    "database_name": "medkey_hopital-central-1234567890",
-    "url": "https://hopital-central-1234567890.medkey.com",
+    "database_name": "akasigroup_hopital-central-1234567890",
+    "url": "https://hopital-central-1234567890.akasigroup.com",
     "admin_email": "admin@hopital-central.fr",
     "created_at": "2024-01-15T10:30:00Z"
   }
@@ -176,7 +176,7 @@ Authorization: Bearer YOUR_API_KEY
   "data": {
     "subdomain": "hopital-central-1234567890",
     "status": "completed",
-    "database_name": "medkey_hopital-central-1234567890",
+    "database_name": "akasigroup_hopital-central-1234567890",
     "created_at": "2024-01-15T10:30:00Z"
   }
 }
@@ -202,7 +202,7 @@ Authorization: Bearer YOUR_API_KEY
     "hospital_phone": "+33 1 23 45 67 89",
     "hospital_email": "contact@hopital-central.fr",
     "admin_email": "admin@hopital-central.fr",
-    "database_name": "medkey_hopital-central-1234567890",
+    "database_name": "akasigroup_hopital-central-1234567890",
     "status": "completed",
     "created_at": "2024-01-15T10:30:00Z"
   }
@@ -216,7 +216,7 @@ Authorization: Bearer YOUR_API_KEY
 ```javascript
 async function createOnboarding(hospitalData, adminData) {
   try {
-    const response = await fetch('https://onboarding.medkey.com/api/onboarding/create', {
+    const response = await fetch('https://onboarding.akasigroup.com/api/onboarding/create', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -272,7 +272,7 @@ use GuzzleHttp\Client;
 
 function createOnboarding($hospitalData, $adminData) {
     $client = new Client([
-        'base_uri' => 'https://onboarding.medkey.com/api',
+        'base_uri' => 'https://onboarding.akasigroup.com/api',
         'headers' => [
             'Authorization' => 'Bearer YOUR_API_KEY',
             'Content-Type' => 'application/json',
@@ -326,7 +326,7 @@ echo "Subdomain créé: " . $result['subdomain'];
 ### cURL
 
 ```bash
-curl -X POST https://onboarding.medkey.com/api/onboarding/create \
+curl -X POST https://onboarding.akasigroup.com/api/onboarding/create \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
@@ -365,7 +365,7 @@ function OnboardingForm() {
 
     try {
       const response = await axios.post(
-        'https://onboarding.medkey.com/api/onboarding/create',
+        'https://onboarding.akasigroup.com/api/onboarding/create',
         {
           hospital: {
             name: formData.hospitalName,
@@ -459,7 +459,7 @@ export default {
 
       try {
         const response = await axios.post(
-          'https://onboarding.medkey.com/api/onboarding/create',
+          'https://onboarding.akasigroup.com/api/onboarding/create',
           {
             hospital: this.formData.hospital,
             admin: this.formData.admin,
@@ -559,10 +559,10 @@ Content-Type: application/json
   "timestamp": "2024-01-15T10:30:00Z",
   "data": {
     "subdomain": "hopital-central-1234567890",
-    "database_name": "medkey_hopital-central-1234567890",
+    "database_name": "akasigroup_hopital-central-1234567890",
     "hospital_name": "Hôpital Central",
     "admin_email": "admin@hopital-central.fr",
-    "url": "https://hopital-central-1234567890.medkey.com"
+    "url": "https://hopital-central-1234567890.akasigroup.com"
   }
 }
 ```
@@ -617,7 +617,7 @@ DB_ROOT_USERNAME=root
 DB_ROOT_PASSWORD=your_root_password
 
 # Domaine de base pour les sous-domaines
-SUBDOMAIN_BASE_DOMAIN=medkey.com
+SUBDOMAIN_BASE_DOMAIN=akasigroup.com
 
 # Configuration email
 MAIL_MAILER=smtp
@@ -625,8 +625,8 @@ MAIL_HOST=smtp.mailtrap.io
 MAIL_PORT=2525
 MAIL_USERNAME=your_username
 MAIL_PASSWORD=your_password
-MAIL_FROM_ADDRESS=noreply@medkey.com
-MAIL_FROM_NAME=MedKey
+MAIL_FROM_ADDRESS=noreply@akasigroup.com
+MAIL_FROM_NAME="Akasi Group"
 
 # Clé API (pour les intégrations externes)
 API_KEY=your_secret_api_key
@@ -699,9 +699,9 @@ $apiKey->update(['is_active' => false]);
 ## 📞 Support
 
 Pour toute question ou problème :
-- Email: support@medkey.com
-- Documentation: https://docs.medkey.com/onboarding
-- Issues GitHub: https://github.com/votre-org/medkey-onboarding/issues
+- Email: support@akasigroup.com
+- Documentation: https://docs.akasigroup.com/onboarding
+- Issues GitHub: https://github.com/votre-org/akasigroup-onboarding/issues
 
 ## 📄 Licence
 

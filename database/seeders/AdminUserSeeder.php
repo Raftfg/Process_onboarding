@@ -15,24 +15,25 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         // Vérifier si un super-admin existe déjà
-        $existingAdmin = AdminUser::where('email', 'admin@medkey.com')->first();
+        $adminEmail = env('ADMIN_EMAIL', 'admin@akasigroup.com');
+        $existingAdmin = AdminUser::where('email', $adminEmail)->first();
         
         if (!$existingAdmin) {
             AdminUser::create([
                 'name' => 'Super Administrateur',
-                'email' => 'admin@medkey.com',
-                'password' => Hash::make('admin123'), // Mot de passe par défaut - À CHANGER EN PRODUCTION
+                'email' => $adminEmail,
+                'password' => Hash::make(env('ADMIN_PASSWORD', 'admin123')), // Mot de passe par défaut - À CHANGER EN PRODUCTION
                 'role' => 'super_admin',
                 'status' => 'active',
                 'email_verified_at' => now(),
             ]);
             
             $this->command->info('Super-admin créé avec succès !');
-            $this->command->info('Email: admin@medkey.com');
-            $this->command->info('Mot de passe: admin123');
+            $this->command->info('Email: ' . $adminEmail);
+            $this->command->info('Mot de passe: ' . (env('ADMIN_PASSWORD', 'admin123')));
             $this->command->warn('⚠️  IMPORTANT: Changez le mot de passe après la première connexion !');
         } else {
-            $this->command->info('Un super-admin existe déjà avec l\'email admin@medkey.com');
+            $this->command->info('Un super-admin existe déjà avec l\'email ' . $adminEmail);
         }
     }
 }

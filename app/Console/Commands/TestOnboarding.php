@@ -33,6 +33,8 @@ class TestOnboarding extends Command
     protected $tenantService;
     protected $testSubdomain;
     protected $testDatabase;
+    protected $activationToken;
+    protected $testPassword;
 
     /**
      * Execute the console command.
@@ -48,7 +50,7 @@ class TestOnboarding extends Command
         // Générer un sous-domaine de test initial (sera mis à jour après l'onboarding)
         $initialSubdomain = $this->option('subdomain') ?? 'test-' . time();
         $this->testSubdomain = $initialSubdomain;
-        $this->testDatabase = 'medkey_' . $this->testSubdomain;
+        $this->testDatabase = 'akasigroup_' . $this->testSubdomain;
 
         $this->info("📋 Sous-domaine initial: {$this->testSubdomain}");
         $this->info("ℹ️  Note: Le sous-domaine sera généré automatiquement lors de l'onboarding");
@@ -56,8 +58,9 @@ class TestOnboarding extends Command
 
         $tests = [
             'testDatabaseCreation' => 'Création de la base de données',
-            'testOnboardingProcess' => 'Processus d\'onboarding complet',
-            'testUserCreation' => 'Création de l\'utilisateur admin',
+            'testOnboardingProcess' => 'Processus d\'onboarding initial',
+            'testActivation' => 'Activation du compte',
+            'testUserCreation' => 'Vérification de l\'utilisateur admin',
             'testDatabaseSwitch' => 'Basculement vers la base tenant',
             'testUserAuthentication' => 'Authentification de l\'utilisateur',
             'testOnboardingSession' => 'Session d\'onboarding',
@@ -134,20 +137,44 @@ class TestOnboarding extends Command
             ],
         ];
 
-        $result = $this->onboardingService->processOnboarding($testData);
+        // Store password for activation step
+        $this->testPassword = $testData['step2']['admin_password'];
 
-        if (isset($result['subdomain']) && isset($result['database'])) {
+        $result = $this->onboardingService->processOnboarding(
+            $testData['step2']['admin_email'],
+            $testData['step1']['hospital_name']
+        );
+
+        if (isset($result['subdomain']) && isset($result['database']) && isset($result['activation_token'])) {
             // Mettre à jour le sous-domaine et la base de données avec ceux générés
             $this->testSubdomain = $result['subdomain'];
             $this->testDatabase = $result['database'];
+            $this->activationToken = $result['activation_token'];
             
             $this->info("   ℹ️  Sous-domaine généré: {$this->testSubdomain}");
             $this->info("   ℹ️  Base de données générée: {$this->testDatabase}");
+            $this->info("   ℹ️  Token d'activation généré: " . substr($this->activationToken, 0, 10) . "...");
             
-            return "Onboarding complété - Subdomain: {$result['subdomain']}, Database: {$result['database']}";
+            return "Onboarding initial complété - En attente d'activation";
         }
 
-        throw new \Exception("Échec du processus d'onboarding");
+        throw new \Exception("Échec du processus d'onboarding ou token manquant");
+    }
+
+    protected function testActivation()
+    {
+        if (!$this->activationToken) {
+            throw new \Exception("Token d'activation manquant. L'étape d'onboarding a-t-elle réussi ?");
+        }
+
+        $activationService = app(\App\Services\ActivationService::class);
+        $result = $activationService->activateAccount($this->activationToken, $this->testPassword);
+
+        if ($result && isset($result['user'])) {
+            return "Compte activé avec succès pour " . $result['email'];
+        }
+
+        throw new \Exception("Échec de l'activation du compte");
     }
 
     protected function testUserCreation()
@@ -252,15 +279,19 @@ class TestOnboarding extends Command
         Config::set('database.default', 'mysql');
         DB::purge('tenant');
 
-        $session = OnboardingSession::where('subdomain', $this->testSubdomain)
-            ->where('status', 'completed')
-            ->first();
+        $session = OnboardingSession::where('subdomain', $this->testSubdomain)->first();
 
         if (!$session) {
-            throw new \Exception("Session d'onboarding non trouvée");
+            throw new \Exception("Session d'onboarding non trouvée pour le sous-domaine: {$this->testSubdomain}");
         }
 
-        return "Session trouvée - Hospital: {$session->hospital_name}, Admin: {$session->admin_email}";
+        $this->info("   ℹ️  Session trouvée. Status: {$session->status}, Admin: {$session->admin_email}");
+
+        if ($session->status !== 'completed') {
+             throw new \Exception("Session trouvée mais statut incorrect: {$session->status} (Attendu: completed)");
+        }
+
+        return "Session validée - Hospital: {$session->hospital_name}, Status: {$session->status}";
     }
 
     protected function databaseExists(string $databaseName): bool

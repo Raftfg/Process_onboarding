@@ -2,7 +2,7 @@
 REM Script de test pour le processus d'onboarding (Windows)
 REM Usage: test-onboarding.bat [--clean]
 
-echo 🧪 Test du processus d'onboarding MedKey
+echo 🧪 Test du processus d'onboarding Akasi Group
 echo ========================================
 echo.
 

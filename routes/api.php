@@ -30,5 +30,6 @@ Route::middleware(['api.auth'])->group(function () {
 // API interne (utilisée par le frontend)
 Route::prefix('onboarding')->middleware('web')->group(function () {
     Route::post('/complete', [OnboardingApiController::class, 'complete'])->name('api.onboarding.complete');
+    Route::post('/process', [OnboardingApiController::class, 'processAsync'])->name('api.onboarding.process');
     Route::get('/status/{sessionId}', [OnboardingApiController::class, 'status'])->name('api.onboarding.status');
 });

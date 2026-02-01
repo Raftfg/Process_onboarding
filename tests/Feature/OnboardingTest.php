@@ -26,7 +26,7 @@ class OnboardingTest extends TestCase
         $this->onboardingService = app(OnboardingService::class);
         $this->tenantService = app(TenantService::class);
         $this->testSubdomain = 'test-' . time();
-        $this->testDatabase = 'medkey_' . $this->testSubdomain;
+        $this->testDatabase = 'akasigroup_' . $this->testSubdomain;
     }
 
     protected function tearDown(): void

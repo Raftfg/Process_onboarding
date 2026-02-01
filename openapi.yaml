@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
-  title: MedKey Onboarding API
-  description: API pour l'intégration du microservice d'onboarding multi-tenant MedKey
+  title: Akasi Group Onboarding API
+  description: API pour l'intégration du microservice d'onboarding multi-tenant Akasi Group
   version: 1.0.0
   contact:
-    name: Support MedKey
-    email: support@medkey.com
+    name: Support Akasi Group
+    email: support@akasigroup.com
 
 servers:
-  - url: https://onboarding.medkey.com/api
+  - url: https://onboarding.akasigroup.com/api
     description: Production
   - url: http://localhost:8000/api
     description: Développement local
@@ -112,10 +112,10 @@ paths:
                         example: hopital-central-1234567890
                       database_name:
                         type: string
-                        example: medkey_hopital-central-1234567890
+                        example: akasigroup_hopital-central-1234567890
                       url:
                         type: string
-                        example: https://hopital-central-1234567890.medkey.com
+                        example: https://hopital-central-1234567890.akasigroup.com
                       admin_email:
                         type: string
                         example: admin@hopital-central.fr

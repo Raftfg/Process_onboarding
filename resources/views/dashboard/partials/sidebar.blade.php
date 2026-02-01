@@ -15,7 +15,7 @@
             @endphp
             <img src="{{ $logoUrl }}" alt="{{ $tenantBranding['organization_name'] ?? 'Logo' }}" onerror="this.style.display='none';">
         @endif
-        <h1>{{ $tenantBranding['organization_name'] ?? 'MedKey' }}</h1>
+        <h1>{{ $tenantBranding['organization_name'] ?? 'Akasi Group' }}</h1>
     </div>
     
     <nav class="sidebar-nav">
@@ -33,7 +33,15 @@
         
         @foreach($menuItems as $item)
             @if(($item['enabled'] ?? true) && isset($routeMap[$item['key']]))
-                <a href="{{ route($routeMap[$item['key']]['route']) }}" class="nav-item {{ request()->routeIs($routeMap[$item['key']]['pattern']) ? 'active' : '' }}">
+                @php
+                    // Préserver le token auto_login_token dans les liens du menu
+                    $menuUrl = route($routeMap[$item['key']]['route']);
+                    if (request()->has('auto_login_token')) {
+                        $token = request()->query('auto_login_token');
+                        $menuUrl .= (str_contains($menuUrl, '?') ? '&' : '?') . 'auto_login_token=' . $token;
+                    }
+                @endphp
+                <a href="{{ $menuUrl }}" class="nav-item {{ request()->routeIs($routeMap[$item['key']]['pattern']) ? 'active' : '' }}">
                     <i>{{ $item['icon'] ?? '📋' }}</i> {{ $item['label'] ?? ucfirst($item['key']) }}
                 </a>
             @endif

@@ -73,7 +73,7 @@ class LogoutController extends Controller
                 $port = parse_url(config('app.url', 'http://localhost:8000'), PHP_URL_PORT) ?? '8000';
                 $loginUrl = "http://{$subdomain}.localhost:{$port}/login";
             } else {
-                $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
+                $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
                 $loginUrl = "https://{$subdomain}.{$baseDomain}/login";
             }
             return redirect($loginUrl)->with('success', 'Vous avez été déconnecté avec succès.');

@@ -24,8 +24,16 @@
                 <i>▼</i>
             </div>
             
+            @php
+                // Préserver le token auto_login_token dans le lien
+                $settingsUrl = route('dashboard.settings');
+                if (request()->has('auto_login_token')) {
+                    $token = request()->query('auto_login_token');
+                    $settingsUrl .= (str_contains($settingsUrl, '?') ? '&' : '?') . 'auto_login_token=' . $token;
+                }
+            @endphp
             <div id="profile-menu" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 10px; background: white; border-radius: 8px; box-shadow: var(--shadow-lg); min-width: 200px; z-index: 1000;">
-                <a href="{{ route('dashboard.settings') }}" style="display: block; padding: 12px 20px; color: var(--text-color); text-decoration: none; border-bottom: 1px solid var(--border-color);">
+                <a href="{{ $settingsUrl }}" style="display: block; padding: 12px 20px; color: var(--text-color); text-decoration: none; border-bottom: 1px solid var(--border-color);">
                     ⚙️ Paramètres
                 </a>
                 <form method="POST" action="{{ route('logout') }}" style="margin: 0;">

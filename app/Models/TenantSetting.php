@@ -47,7 +47,8 @@ class TenantSetting extends Model
         $cacheKey = "tenant_setting_{$key}_{$databaseName}";
         $connectionName = $connection->getName();
         
-        return Cache::remember($cacheKey, 3600, function () use ($key, $default, $connectionName) {
+        // Utiliser un cache plus court (5 minutes) pour permettre des mises à jour plus rapides
+        return Cache::remember($cacheKey, 300, function () use ($key, $default, $connectionName) {
             try {
                 $model = new static();
                 $model->setConnection($connectionName);
@@ -87,6 +88,8 @@ class TenantSetting extends Model
             $model = new static();
             $model->setConnection($connection->getName());
             
+            // Stocker directement la valeur - Laravel gérera automatiquement le JSON
+            // Pour les chaînes simples (comme les couleurs), elles seront stockées comme des chaînes JSON
             $setting = $model->updateOrCreate(
                 ['key' => $key],
                 [
@@ -95,7 +98,10 @@ class TenantSetting extends Model
                 ]
             );
             
-            \Illuminate\Support\Facades\Log::info("Setting enregistré: {$key} = " . json_encode($value) . " dans la base: {$databaseName}");
+            \Illuminate\Support\Facades\Log::info("Setting enregistré: {$key} = " . (is_string($value) ? $value : json_encode($value)) . " dans la base: {$databaseName}", [
+                'raw_value' => $setting->getAttributes()['value'] ?? null,
+                'casted_value' => $setting->value
+            ]);
 
             // Invalider le cache avec le nom de la base de données
             Cache::forget("tenant_setting_{$key}_{$databaseName}");
@@ -134,7 +140,8 @@ class TenantSetting extends Model
         $cacheKey = "tenant_settings_group_{$group}_{$databaseName}";
         $connectionName = $connection->getName();
         
-        return Cache::remember($cacheKey, 3600, function () use ($group, $connectionName, $databaseName) {
+        // Utiliser un cache plus court (5 minutes) pour permettre des mises à jour plus rapides
+        return Cache::remember($cacheKey, 300, function () use ($group, $connectionName, $databaseName) {
             try {
                 $model = new static();
                 $model->setConnection($connectionName);
@@ -145,21 +152,37 @@ class TenantSetting extends Model
                     'settings' => $settings->toArray()
                 ]);
                 
-                // Construire le tableau manuellement pour s'assurer que le cast est appliqué
+                // Construire le tableau manuellement pour gérer correctement les valeurs
                 $result = [];
                 foreach ($settings as $setting) {
-                    // Récupérer la valeur brute depuis la base
-                    $rawValue = $setting->getAttributes()['value'] ?? $setting->value;
+                    // Récupérer la valeur brute depuis la base (avant le cast)
+                    $rawValue = $setting->getAttributes()['value'] ?? null;
                     
-                    // Si c'est une chaîne JSON, la décoder
+                    // Si la valeur brute est une chaîne JSON, la décoder
                     if (is_string($rawValue)) {
                         $decoded = json_decode($rawValue, true);
-                        // Si le décodage a réussi et que ce n'est pas null, utiliser la valeur décodée
-                        // Sinon, utiliser la chaîne originale (cas des couleurs simples comme "#667eea")
-                        $value = (json_last_error() === JSON_ERROR_NONE && $decoded !== null) ? $decoded : $rawValue;
+                        // Si le décodage a réussi et que ce n'est pas null ET que ce n'est pas une chaîne simple, utiliser la valeur décodée
+                        // Sinon, utiliser la chaîne originale (cas des couleurs simples comme "#00286f")
+                        if (json_last_error() === JSON_ERROR_NONE && $decoded !== null && !is_string($decoded)) {
+                            $value = $decoded;
+                        } else {
+                            // C'est une chaîne simple (comme une couleur), utiliser la valeur brute décodée ou la chaîne
+                            $value = $decoded !== null && is_string($decoded) ? $decoded : $rawValue;
+                        }
                     } else {
-                        // Si c'est déjà un tableau (cast appliqué), l'utiliser tel quel
-                        $value = $rawValue;
+                        // Si c'est déjà un tableau (cast appliqué), vérifier si c'est une chaîne dans un tableau
+                        $castedValue = $setting->value;
+                        if (is_array($castedValue) && count($castedValue) === 1 && isset($castedValue[0])) {
+                            // Cas spécial : tableau avec une seule valeur (peut être une chaîne mal castée)
+                            $value = $castedValue[0];
+                        } else {
+                            $value = $castedValue;
+                        }
+                    }
+                    
+                    // S'assurer que les couleurs sont des chaînes
+                    if (in_array($setting->key, ['primary_color', 'secondary_color', 'accent_color', 'background_color']) && !is_string($value)) {
+                        $value = is_array($value) && isset($value[0]) ? $value[0] : (string) $value;
                     }
                     
                     $result[$setting->key] = $value;
@@ -204,7 +227,8 @@ class TenantSetting extends Model
         $cacheKey = "tenant_settings_all_{$databaseName}";
         $connectionName = $connection->getName();
         
-        return Cache::remember($cacheKey, 3600, function () use ($connectionName) {
+        // Utiliser un cache plus court (5 minutes) pour permettre des mises à jour plus rapides
+        return Cache::remember($cacheKey, 300, function () use ($connectionName) {
             try {
                 $model = new static();
                 $model->setConnection($connectionName);

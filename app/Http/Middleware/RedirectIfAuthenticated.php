@@ -67,7 +67,7 @@ class RedirectIfAuthenticated
                                 if (config('app.env') === 'local') {
                                     $dashboardUrl = "http://{$subdomain}.localhost:8000/dashboard";
                                 } else {
-                                    $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
+                                    $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
                                     $dashboardUrl = "https://{$subdomain}.{$baseDomain}/dashboard";
                                 }
                                 

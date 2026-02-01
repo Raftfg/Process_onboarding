@@ -41,7 +41,7 @@ class WelcomeController extends Controller
             if (config('app.env') === 'local') {
                 $dashboardUrl = "http://{$subdomain}.localhost:8000/dashboard";
             } else {
-                $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
+                $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
                 $dashboardUrl = "https://{$subdomain}.{$baseDomain}/dashboard";
             }
             
@@ -54,7 +54,7 @@ class WelcomeController extends Controller
             if (config('app.env') === 'local') {
                 $loginUrl = "http://{$subdomain}.localhost:8000/login";
             } else {
-                $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
+                $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
                 $loginUrl = "https://{$subdomain}.{$baseDomain}/login";
             }
             return redirect($loginUrl)->with('success', 'Onboarding terminé avec succès. Veuillez vous connecter.');

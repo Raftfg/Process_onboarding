@@ -3,7 +3,7 @@
 # Script de test pour le processus d'onboarding
 # Usage: ./test-onboarding.sh [--clean]
 
-echo "🧪 Test du processus d'onboarding MedKey"
+echo "🧪 Test du processus d'onboarding Akasi Group"
 echo "========================================"
 echo ""
 

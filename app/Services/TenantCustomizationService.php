@@ -47,8 +47,8 @@ class TenantCustomizationService
     public function getBranding(): array
     {
         $defaults = [
-            'primary_color' => '#667eea',
-            'secondary_color' => '#764ba2',
+            'primary_color' => '#00286f',
+            'secondary_color' => '#001d4d',
             'accent_color' => '#10b981',
             'background_color' => '#f5f7fa',
             'logo_url' => null,
@@ -56,14 +56,38 @@ class TenantCustomizationService
             'favicon_url' => null,
         ];
 
-        $settings = TenantSetting::getGroup('branding');
-        
-        \Illuminate\Support\Facades\Log::info("Settings branding récupérés", [
-            'settings' => $settings,
-            'merged' => array_merge($defaults, $settings)
-        ]);
-        
-        return array_merge($defaults, $settings);
+        try {
+            $connection = \Illuminate\Support\Facades\DB::connection();
+            $databaseName = $connection->getDatabaseName();
+            
+            // Vérifier que la table existe
+            if (!\Illuminate\Support\Facades\Schema::hasTable('tenant_settings')) {
+                \Illuminate\Support\Facades\Log::info("Table tenant_settings n'existe pas, utilisation des valeurs par défaut");
+                return $defaults;
+            }
+            
+            $settings = TenantSetting::getGroup('branding');
+            
+            \Illuminate\Support\Facades\Log::info("Settings branding récupérés", [
+                'database' => $databaseName,
+                'settings' => $settings,
+                'merged' => array_merge($defaults, $settings)
+            ]);
+            
+            $result = array_merge($defaults, $settings);
+            
+            // S'assurer que les couleurs sont bien des chaînes
+            foreach (['primary_color', 'secondary_color', 'accent_color', 'background_color'] as $key) {
+                if (isset($result[$key]) && !is_string($result[$key])) {
+                    $result[$key] = (string) $result[$key];
+                }
+            }
+            
+            return $result;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Erreur lors de la récupération du branding: " . $e->getMessage());
+            return $defaults;
+        }
     }
 
     /**
@@ -135,20 +159,38 @@ class TenantCustomizationService
         
         // Créer le répertoire si nécessaire
         $directory = "tenants/{$subdomain}/logos";
-        $disk->makeDirectory($directory);
+        if (!$disk->exists($directory)) {
+            $disk->makeDirectory($directory);
+        }
 
         // Supprimer l'ancien logo s'il existe
         $oldLogo = $this->getSetting('logo_url', null);
         if ($oldLogo) {
-            // Extraire le chemin relatif depuis l'URL
-            $oldPath = str_replace('/storage/', '', parse_url($oldLogo, PHP_URL_PATH));
-            if ($disk->exists($oldPath)) {
-                $disk->delete($oldPath);
+            try {
+                // Extraire le chemin relatif depuis l'URL
+                $parsedUrl = parse_url($oldLogo);
+                $oldPath = isset($parsedUrl['path']) ? ltrim($parsedUrl['path'], '/') : '';
+                
+                // Si le chemin commence par storage/, le retirer
+                if (strpos($oldPath, 'storage/') === 0) {
+                    $oldPath = substr($oldPath, 8); // Retirer "storage/"
+                } elseif (strpos($oldPath, '/storage/') === 0) {
+                    $oldPath = substr($oldPath, 9); // Retirer "/storage/"
+                }
+                
+                if ($disk->exists($oldPath)) {
+                    $disk->delete($oldPath);
+                    Log::info("Ancien logo supprimé: {$oldPath}");
+                }
+            } catch (\Exception $e) {
+                Log::warning("Erreur lors de la suppression de l'ancien logo: " . $e->getMessage());
             }
         }
 
         // Stocker le nouveau logo
         $path = $file->store($directory, 'public');
+        
+        Log::info("Logo stocké à: {$path}");
         
         // Générer l'URL en utilisant l'URL de la requête actuelle si disponible
         // Sinon utiliser l'URL du disque
@@ -161,8 +203,21 @@ class TenantCustomizationService
             $url = $disk->url($path);
         }
 
+        Log::info("URL du logo générée: {$url}");
+
         // Sauvegarder l'URL
         $this->setSetting('logo_url', $url, 'branding');
+        
+        // Vider le cache immédiatement
+        try {
+            $connection = \Illuminate\Support\Facades\DB::connection();
+            $databaseName = $connection->getDatabaseName();
+            \Illuminate\Support\Facades\Cache::forget("tenant_settings_group_branding_{$databaseName}");
+            \Illuminate\Support\Facades\Cache::forget("tenant_setting_logo_url_{$databaseName}");
+            Log::info("Cache vidé pour logo_url dans la base {$databaseName}");
+        } catch (\Exception $e) {
+            Log::warning("Erreur lors du vidage du cache: " . $e->getMessage());
+        }
 
         return $url;
     }
@@ -174,10 +229,14 @@ class TenantCustomizationService
     {
         $branding = $this->getBranding();
         
+        // Utiliser les valeurs par défaut mises à jour
+        $defaultPrimary = '#00286f';
+        $defaultSecondary = '#001d4d';
+        
         $cssVars = [
-            '--primary-color' => $branding['primary_color'] ?? '#667eea',
-            '--primary-dark' => $this->darkenColor($branding['primary_color'] ?? '#667eea', 10),
-            '--secondary-color' => $branding['secondary_color'] ?? '#764ba2',
+            '--primary-color' => $branding['primary_color'] ?? $defaultPrimary,
+            '--primary-dark' => $this->darkenColor($branding['primary_color'] ?? $defaultPrimary, 10),
+            '--secondary-color' => $branding['secondary_color'] ?? $defaultSecondary,
             '--accent-color' => $branding['accent_color'] ?? '#10b981',
             '--bg-color' => $branding['background_color'] ?? '#f5f7fa',
         ];
@@ -217,8 +276,8 @@ class TenantCustomizationService
     public function getDefaultBranding(): array
     {
         return [
-            'primary_color' => '#667eea',
-            'secondary_color' => '#764ba2',
+            'primary_color' => '#00286f',
+            'secondary_color' => '#001d4d',
             'accent_color' => '#10b981',
             'background_color' => '#f5f7fa',
             'logo_url' => null,
@@ -283,8 +342,8 @@ class TenantCustomizationService
     public function initializeDefaults(string $organizationName = null): void
     {
         // Branding par défaut
-        $this->setSetting('primary_color', '#667eea', 'branding');
-        $this->setSetting('secondary_color', '#764ba2', 'branding');
+        $this->setSetting('primary_color', '#00286f', 'branding');
+        $this->setSetting('secondary_color', '#001d4d', 'branding');
         $this->setSetting('accent_color', '#10b981', 'branding');
         $this->setSetting('background_color', '#f5f7fa', 'branding');
         if ($organizationName) {

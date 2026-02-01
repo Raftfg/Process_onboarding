@@ -16,6 +16,12 @@ class SettingsController extends Controller
     public function index()
     {
         $user = Auth::user();
+        
+        if (!$user) {
+            // Si l'utilisateur n'est pas authentifié, rediriger vers login
+            return redirect()->route('login');
+        }
+        
         return view('dashboard.settings.index', compact('user'));
     }
 
@@ -43,7 +49,16 @@ class SettingsController extends Controller
 
         $user->save();
 
-        return redirect()->route('dashboard.settings')
+        // Préserver le token auto_login_token dans la redirection si présent
+        $redirect = redirect()->route('dashboard.settings')
             ->with('success', 'Paramètres mis à jour avec succès');
+        
+        if (request()->has('auto_login_token')) {
+            $token = request()->query('auto_login_token');
+            $redirect = redirect()->route('dashboard.settings', ['auto_login_token' => $token])
+                ->with('success', 'Paramètres mis à jour avec succès');
+        }
+        
+        return $redirect;
     }
 }

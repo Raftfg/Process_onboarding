@@ -1,4 +1,4 @@
-# Guide de Test - MedKey Onboarding
+# Guide de Test - Akasi Group Onboarding
 
 Ce guide explique comment tester le système d'onboarding.
 
@@ -134,7 +134,7 @@ Si vous avez oublié d'utiliser `--clean`, vous pouvez nettoyer manuellement :
 DELETE FROM onboarding_sessions WHERE subdomain LIKE 'test-%';
 
 -- Supprimer la base de données
-DROP DATABASE IF EXISTS medkey_test-XXXXXX;
+DROP DATABASE IF EXISTS akasigroup_test-XXXXXX;
 ```
 
 ## 🐛 Dépannage

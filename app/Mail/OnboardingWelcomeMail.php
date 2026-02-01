@@ -28,7 +28,7 @@ class OnboardingWelcomeMail extends Mailable
             $adminName = $this->adminData['admin_email'] ?? 'Utilisateur';
         }
         
-        return $this->subject('Bienvenue sur MedKey - Votre compte est prêt !')
+        return $this->subject('Bienvenue sur Akasi Group - Votre compte est prêt !')
                     ->view('emails.onboarding-welcome')
                     ->with([
                         'adminName' => $adminName,

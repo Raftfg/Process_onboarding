@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Dashboard') - MedKey</title>
+    <title>@yield('title', 'Dashboard') - Akasi Group</title>
     
     <style>
         :root {
-            --primary-color: {{ $tenantCssVariables['--primary-color'] ?? '#667eea' }};
-            --primary-dark: {{ $tenantCssVariables['--primary-dark'] ?? '#764ba2' }};
-            --secondary-color: {{ $tenantCssVariables['--secondary-color'] ?? '#764ba2' }};
+            --primary-color: {{ $tenantCssVariables['--primary-color'] ?? '#00286f' }};
+            --primary-dark: {{ $tenantCssVariables['--primary-dark'] ?? '#001d4d' }};
+            --secondary-color: {{ $tenantCssVariables['--secondary-color'] ?? '#001d4d' }};
             --accent-color: {{ $tenantCssVariables['--accent-color'] ?? '#10b981' }};
             --sidebar-width: 260px;
             --header-height: 70px;
@@ -327,7 +327,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(102, 126, 234, 0.1);
+            background: rgba(0, 40, 111, 0.1);
             color: var(--primary-color);
         }
 
@@ -474,7 +474,7 @@
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(102, 126, 234, 0.3);
+            border: 3px solid rgba(0, 40, 111, 0.3);
             border-radius: 50%;
             border-top-color: var(--primary-color);
             animation: spin 1s ease-in-out infinite;
@@ -513,13 +513,135 @@
         </div>
     </div>
 
+    <script>
+        // IMPORTANT: Préserver le token auto_login_token dans toutes les URLs du dashboard
+        // Ce script DOIT s'exécuter AVANT le chargement d'Axios pour intercepter correctement les requêtes
+        (function() {
+            // Récupérer le token de l'URL actuelle
+            const urlParams = new URLSearchParams(window.location.search);
+            const autoLoginToken = urlParams.get('auto_login_token');
+            
+            if (autoLoginToken) {
+                // Stocker le token dans une variable globale accessible
+                window.autoLoginToken = autoLoginToken;
+                
+                // Intercepter tous les clics sur les liens AVANT le chargement du DOM
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Intercepter tous les clics sur les liens
+                    document.addEventListener('click', function(e) {
+                        const link = e.target.closest('a');
+                        if (link && link.href) {
+                            // Vérifier si c'est un lien interne (même domaine)
+                            try {
+                                const linkUrl = new URL(link.href, window.location.origin);
+                                const currentUrl = new URL(window.location.href);
+                                
+                                // Si c'est le même domaine et que le token n'est pas déjà présent
+                                if (linkUrl.hostname === currentUrl.hostname && !linkUrl.searchParams.has('auto_login_token')) {
+                                    // Ajouter le token à l'URL
+                                    linkUrl.searchParams.set('auto_login_token', autoLoginToken);
+                                    link.href = linkUrl.toString();
+                                }
+                            } catch (err) {
+                                // Ignorer les erreurs pour les liens invalides
+                            }
+                        }
+                    });
+                });
+                
+                // Intercepter les requêtes Axios APRÈS le chargement d'Axios
+                // Utiliser un MutationObserver pour détecter quand Axios est chargé
+                const checkAxios = setInterval(function() {
+                    if (typeof axios !== 'undefined') {
+                        clearInterval(checkAxios);
+                        
+                        // Configuration Axios
+                        axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                        
+                        // Intercepter les requêtes Axios pour ajouter le token aux URLs
+                        const originalGet = axios.get;
+                        axios.get = function(url, config) {
+                            if (typeof url === 'string') {
+                                try {
+                                    // Si l'URL est relative, la convertir en URL absolue
+                                    const urlObj = url.startsWith('http') 
+                                        ? new URL(url) 
+                                        : new URL(url, window.location.origin);
+                                    
+                                    // Vérifier si c'est le même domaine
+                                    if (urlObj.hostname === window.location.hostname && !urlObj.searchParams.has('auto_login_token')) {
+                                        urlObj.searchParams.set('auto_login_token', autoLoginToken);
+                                        url = urlObj.pathname + urlObj.search;
+                                    }
+                                } catch (err) {
+                                    // Si l'URL est invalide, essayer d'ajouter le token manuellement
+                                    if (url.includes('?')) {
+                                        url += '&auto_login_token=' + autoLoginToken;
+                                    } else {
+                                        url += '?auto_login_token=' + autoLoginToken;
+                                    }
+                                }
+                            }
+                            return originalGet.call(this, url, config);
+                        };
+                        
+                        // Intercepter aussi axios.post, axios.put, axios.delete, etc.
+                        ['post', 'put', 'patch', 'delete'].forEach(function(method) {
+                            const originalMethod = axios[method];
+                            axios[method] = function(url, data, config) {
+                                if (typeof url === 'string') {
+                                    try {
+                                        const urlObj = url.startsWith('http') 
+                                            ? new URL(url) 
+                                            : new URL(url, window.location.origin);
+                                        
+                                        if (urlObj.hostname === window.location.hostname && !urlObj.searchParams.has('auto_login_token')) {
+                                            urlObj.searchParams.set('auto_login_token', autoLoginToken);
+                                            url = urlObj.pathname + urlObj.search;
+                                        }
+                                    } catch (err) {
+                                        if (url.includes('?')) {
+                                            url += '&auto_login_token=' + autoLoginToken;
+                                        } else {
+                                            url += '?auto_login_token=' + autoLoginToken;
+                                        }
+                                    }
+                                }
+                                return originalMethod.call(this, url, data, config);
+                            };
+                        });
+                    }
+                }, 50); // Vérifier toutes les 50ms jusqu'à ce qu'Axios soit chargé
+                
+                // Intercepter les redirections JavaScript
+                const originalLocationAssign = window.location.assign;
+                window.location.assign = function(url) {
+                    if (typeof url === 'string') {
+                        try {
+                            const urlObj = new URL(url, window.location.origin);
+                            if (urlObj.hostname === window.location.hostname && !urlObj.searchParams.has('auto_login_token')) {
+                                urlObj.searchParams.set('auto_login_token', autoLoginToken);
+                                url = urlObj.toString();
+                            }
+                        } catch (err) {
+                            // Ignorer les erreurs
+                        }
+                    }
+                    return originalLocationAssign.call(this, url);
+                };
+            }
+        })();
+    </script>
+    
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     
     <script>
-        // Configuration Axios
-        axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        // Configuration Axios (si le token n'a pas été configuré par le script précédent)
+        if (typeof axios !== 'undefined' && !axios.defaults.headers.common['X-CSRF-TOKEN']) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        }
         
         // Fonction utilitaire pour les notifications
         function showNotification(message, type = 'info') {

@@ -14,36 +14,52 @@ use App\Models\OnboardingSession;
 use App\Models\User;
 use App\Services\TenantService;
 use App\Services\WebhookService;
+use App\Services\ActivationService;
 
 class OnboardingService
 {
     protected $tenantService;
     protected $webhookService;
+    protected $activationService;
 
-    public function __construct(TenantService $tenantService, WebhookService $webhookService = null)
+    public function __construct(TenantService $tenantService, WebhookService $webhookService = null, ActivationService $activationService = null)
     {
         $this->tenantService = $tenantService;
         $this->webhookService = $webhookService ?? app(WebhookService::class);
+        $this->activationService = $activationService ?? app(ActivationService::class);
     }
 
-    public function processOnboarding(array $data)
+    /**
+     * Traite l'onboarding avec seulement email et organisation
+     * Ne crée pas l'utilisateur admin (sera fait lors de l'activation)
+     */
+    public function processOnboarding(string $email, string $organizationName): array
     {
         try {
-            // Vérifier que le nom de l'hôpital est unique
-            $this->validateHospitalNameUnique($data['step1']['hospital_name']);
+            // Vérifier que l'email est unique
+            $this->validateEmailUnique($email);
+            
+            // Vérifier que le nom de l'organisation est unique
+            $this->validateOrganizationNameUnique($organizationName);
             
             // Générer un slug unique et un sous-domaine unique
-            $slug = $this->generateUniqueSlug($data['step1']['hospital_name']);
+            $slug = $this->generateUniqueSlug($organizationName);
             $subdomain = $this->generateUniqueSubdomain($slug);
+            
+            // Vérifier que le sous-domaine est unique
+            $this->validateSubdomainUnique($subdomain);
             
             // Créer la base de données avec un nom unique
             $databaseName = $this->createUniqueDatabase($subdomain);
+            
+            // Vérifier que le nom de la base de données est unique
+            $this->validateDatabaseNameUnique($databaseName);
             
             // Créer le sous-domaine
             $this->createSubdomain($subdomain);
             
             // Enregistrer la session d'onboarding (dans la base principale)
-            $this->saveOnboardingSession($data, $slug, $subdomain, $databaseName);
+            $this->saveOnboardingSessionNew($email, $organizationName, $slug, $subdomain, $databaseName);
             
             // Basculer vers la base du tenant
             $this->tenantService->switchToTenantDatabase($databaseName);
@@ -51,33 +67,36 @@ class OnboardingService
             // Exécuter les migrations dans la base du tenant
             $this->runMigrationsInTenantDatabase();
             
-            // Créer l'utilisateur administrateur dans la base du tenant
-            $user = $this->createAdminUser($data['step2'], $data['step1']['hospital_name']);
-            
             // Initialiser les settings de personnalisation par défaut
-            $this->initializeTenantSettings($data['step1']['hospital_name']);
+            $this->initializeTenantSettings($organizationName);
             
             // Revenir à la base principale
             Config::set('database.default', 'mysql');
             DB::purge('tenant');
             
-            // Envoyer l'email
-            $this->sendWelcomeEmail($data['step2'], $subdomain);
+            // Créer le token d'activation
+            $activationToken = $this->activationService->createActivationToken(
+                $email,
+                $organizationName,
+                $subdomain,
+                $databaseName
+            );
             
             $result = [
                 'subdomain' => $subdomain,
                 'database' => $databaseName,
                 'url' => $this->getSubdomainUrl($subdomain),
-                'admin_email' => $data['step2']['admin_email'],
-                'user_id' => $user->id
+                'email' => $email,
+                'organization_name' => $organizationName,
+                'activation_token' => $activationToken,
             ];
 
             // Déclencher le webhook d'onboarding complété
             $this->webhookService->trigger('onboarding.completed', [
                 'subdomain' => $subdomain,
                 'database_name' => $databaseName,
-                'hospital_name' => $data['step1']['hospital_name'],
-                'admin_email' => $data['step2']['admin_email'],
+                'organization_name' => $organizationName,
+                'email' => $email,
                 'url' => $result['url'],
             ]);
 
@@ -88,7 +107,7 @@ class OnboardingService
             // Déclencher le webhook d'échec
             $this->webhookService->trigger('onboarding.failed', [
                 'error' => $e->getMessage(),
-                'hospital_name' => $data['step1']['hospital_name'] ?? null,
+                'organization_name' => $organizationName ?? null,
             ]);
             
             // S'assurer de revenir à la base principale en cas d'erreur
@@ -98,7 +117,10 @@ class OnboardingService
         }
     }
 
-    protected function saveOnboardingSession(array $data, string $slug, string $subdomain, string $databaseName): void
+    /**
+     * Enregistre la session d'onboarding avec les nouvelles données (email + organisation uniquement)
+     */
+    protected function saveOnboardingSessionNew(string $email, string $organizationName, string $slug, string $subdomain, string $databaseName): void
     {
         try {
             // Vérifier si un enregistrement avec ce sous-domaine existe déjà
@@ -106,37 +128,43 @@ class OnboardingService
             
             if ($existing) {
                 // Mettre à jour l'enregistrement existant
-                $existing->update([
+                // IMPORTANT: admin_first_name et admin_last_name sont requis par la table
+                // mais ne sont plus collectés dans le nouveau flux. On les met à jour seulement s'ils sont vides.
+                $updateData = [
                     'session_id' => session()->getId(),
-                    'hospital_name' => $data['step1']['hospital_name'],
+                    'hospital_name' => $organizationName,
                     'slug' => $slug,
-                    'hospital_address' => $data['step1']['hospital_address'] ?? null,
-                    'hospital_phone' => $data['step1']['hospital_phone'] ?? null,
-                    'hospital_email' => $data['step1']['hospital_email'] ?? null,
-                    'admin_first_name' => $data['step2']['admin_first_name'],
-                    'admin_last_name' => $data['step2']['admin_last_name'],
-                    'admin_email' => $data['step2']['admin_email'],
+                    'admin_email' => $email,
                     'database_name' => $databaseName,
-                    'status' => 'completed',
-                    'completed_at' => now(),
-                ]);
+                    'status' => 'pending_activation', // Statut en attente d'activation
+                    'completed_at' => null,
+                ];
+                
+                // Ajouter les champs requis seulement s'ils sont vides
+                if (empty($existing->admin_first_name)) {
+                    $updateData['admin_first_name'] = 'Admin';
+                }
+                if (empty($existing->admin_last_name)) {
+                    $updateData['admin_last_name'] = 'User';
+                }
+                
+                $existing->update($updateData);
                 Log::info("Session d'onboarding mise à jour pour: {$subdomain} (ID: {$existing->id})");
             } else {
                 // Créer un nouvel enregistrement
+                // IMPORTANT: admin_first_name et admin_last_name sont requis par la table
+                // mais ne sont plus collectés dans le nouveau flux. On utilise des valeurs par défaut.
                 $session = OnboardingSession::on('mysql')->create([
                     'session_id' => session()->getId(),
-                    'hospital_name' => $data['step1']['hospital_name'],
+                    'hospital_name' => $organizationName,
                     'slug' => $slug,
-                    'hospital_address' => $data['step1']['hospital_address'] ?? null,
-                    'hospital_phone' => $data['step1']['hospital_phone'] ?? null,
-                    'hospital_email' => $data['step1']['hospital_email'] ?? null,
-                    'admin_first_name' => $data['step2']['admin_first_name'],
-                    'admin_last_name' => $data['step2']['admin_last_name'],
-                    'admin_email' => $data['step2']['admin_email'],
+                    'admin_first_name' => 'Admin', // Valeur par défaut, sera mis à jour lors de l'activation
+                    'admin_last_name' => 'User', // Valeur par défaut, sera mis à jour lors de l'activation
+                    'admin_email' => $email,
                     'subdomain' => $subdomain,
                     'database_name' => $databaseName,
-                    'status' => 'completed',
-                    'completed_at' => now(),
+                    'status' => 'pending_activation', // Statut en attente d'activation
+                    'completed_at' => null,
                 ]);
                 Log::info("Nouvelle session d'onboarding créée pour: {$subdomain} (ID: {$session->id})");
             }
@@ -147,30 +175,68 @@ class OnboardingService
         } catch (\Exception $e) {
             Log::error('Erreur lors de l\'enregistrement de la session: ' . $e->getMessage(), [
                 'subdomain' => $subdomain,
-                'exception' => get_class($e),
-                'trace' => $e->getTraceAsString()
             ]);
-            // Ne pas faire échouer le processus si l'enregistrement échoue
-            // mais essayer quand même de nettoyer le cache
+            
             try {
                 $this->tenantService->clearTenantCache($subdomain);
             } catch (\Exception $cacheException) {
                 // Ignorer les erreurs de cache
             }
+            
+            throw $e;
         }
     }
 
     /**
-     * Valide que le nom de l'hôpital est unique
+     * Valide que l'email est acceptable (désormais autorisé pour plusieurs sous-domaines)
      */
-    protected function validateHospitalNameUnique(string $hospitalName): void
+    protected function validateEmailUnique(string $email): void
+    {
+        // On autorise désormais le même email pour plusieurs sous-domaines.
+        // On pourrait ajouter une vérification pour éviter trop de créations par minute si besoin.
+        
+        Log::info("Utilisation de l'email pour onboarding: {$email}");
+    }
+    
+    /**
+     * Valide que le sous-domaine est unique
+     */
+    protected function validateSubdomainUnique(string $subdomain): void
     {
         $exists = OnboardingSession::on('mysql')
-            ->where('hospital_name', $hospitalName)
+            ->where('subdomain', $subdomain)
             ->exists();
         
         if ($exists) {
-            throw new \Exception("Un hôpital avec le nom '{$hospitalName}' existe déjà. Veuillez choisir un autre nom.");
+            throw new \Exception("Le sous-domaine '{$subdomain}' est déjà utilisé. Veuillez réessayer.");
+        }
+    }
+    
+    /**
+     * Valide que le nom de la base de données est unique
+     */
+    protected function validateDatabaseNameUnique(string $databaseName): void
+    {
+        $exists = OnboardingSession::on('mysql')
+            ->where('database_name', $databaseName)
+            ->exists();
+        
+        if ($exists) {
+            throw new \Exception("Le nom de base de données '{$databaseName}' est déjà utilisé. Veuillez réessayer.");
+        }
+    }
+    
+    /**
+     * Valide que le nom de l'organisation est unique
+     */
+    protected function validateOrganizationNameUnique(string $organizationName): void
+    {
+        $exists = OnboardingSession::on('mysql')
+            ->where('hospital_name', $organizationName)
+            ->exists();
+        
+        if ($exists) {
+            throw new \Exception("Une organisation avec le nom '{$organizationName}' existe déjà. Veuillez choisir un autre nom.");
         }
     }
     
@@ -263,7 +329,7 @@ class OnboardingService
      */
     protected function createUniqueDatabase(string $subdomain): string
     {
-        $baseDatabaseName = 'medkey_' . $subdomain;
+        $baseDatabaseName = 'akasigroup_' . $subdomain;
         $databaseName = $baseDatabaseName;
         $counter = 1;
         $maxAttempts = 100;
@@ -321,7 +387,7 @@ class OnboardingService
 
     protected function createSubdomain(string $subdomain): void
     {
-        $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
+        $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
         $webRoot = config('app.subdomain_web_root', '/var/www/html');
         
         // Dans un environnement de production, vous devriez:
@@ -345,7 +411,7 @@ class OnboardingService
         }
         
         // En production, utiliser le vrai sous-domaine
-        $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
+        $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
         return "https://{$subdomain}.{$baseDomain}";
     }
 
@@ -480,52 +546,13 @@ class OnboardingService
         }
     }
 
-    protected function createAdminUser(array $adminData, string $hospitalName): User
-    {
-        try {
-            // Vérifier que nous sommes bien sur la base du tenant
-            $currentDatabase = DB::connection()->getDatabaseName();
-            Log::info("Création utilisateur dans la base: {$currentDatabase}");
-            
-            // Vérifier si l'utilisateur existe déjà dans la base du tenant
-            $user = User::where('email', $adminData['admin_email'])->first();
-            
-            if (!$user) {
-                // Créer le nouvel utilisateur dans la base du tenant
-                $user = User::create([
-                    'name' => $adminData['admin_first_name'] . ' ' . $adminData['admin_last_name'],
-                    'email' => $adminData['admin_email'],
-                    'password' => Hash::make($adminData['admin_password']),
-                    'email_verified_at' => now(),
-                    'role' => 'admin',
-                    'status' => 'active',
-                ]);
-                
-                Log::info("Utilisateur administrateur créé dans la base du tenant: {$adminData['admin_email']}");
-            } else {
-                Log::info("Utilisateur existe déjà: {$adminData['admin_email']}");
-            }
-            
-            return $user;
-        } catch (\Exception $e) {
-            Log::error("Erreur création utilisateur: " . $e->getMessage());
-            throw new \Exception("Impossible de créer l'utilisateur: " . $e->getMessage());
-        }
-    }
-
-    /**
-     * Initialiser les settings de personnalisation par défaut
-     */
     protected function initializeTenantSettings(string $organizationName): void
     {
         try {
             $customizationService = app(\App\Services\TenantCustomizationService::class);
             $customizationService->initializeDefaults($organizationName);
-            
-            Log::info("Settings de personnalisation initialisés pour: {$organizationName}");
         } catch (\Exception $e) {
             Log::warning("Erreur lors de l'initialisation des settings: " . $e->getMessage());
-            // Ne pas faire échouer le processus si les settings échouent
         }
     }
 
@@ -537,7 +564,7 @@ class OnboardingService
                 $port = parse_url(config('app.url', 'http://localhost:8000'), PHP_URL_PORT) ?? '8000';
                 $loginUrl = "http://{$subdomain}.localhost:{$port}/login";
             } else {
-                $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
+                $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
                 $loginUrl = "https://{$subdomain}.{$baseDomain}/login";
             }
             

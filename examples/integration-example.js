@@ -1,11 +1,11 @@
 /**
- * Exemple d'intégration du microservice d'onboarding MedKey
+ * Exemple d'intégration du microservice d'onboarding Akasi Group
  * 
  * Ce fichier montre comment intégrer le microservice dans votre application
  */
 
 // Configuration
-const ONBOARDING_API_URL = 'https://onboarding.medkey.com/api';
+const ONBOARDING_API_URL = 'https://onboarding.akasigroup.com/api';
 const API_KEY = 'YOUR_API_KEY_HERE'; // À remplacer par votre clé API
 
 /**

@@ -1,12 +1,12 @@
 <?php
 
 /**
- * Exemple d'intégration du microservice d'onboarding MedKey
+ * Exemple d'intégration du microservice d'onboarding Akasi Group
  * 
  * Ce fichier montre comment intégrer le microservice dans votre application PHP
  */
 
-class MedKeyOnboardingClient
+class AkasiGroupOnboardingClient
 {
     private $apiUrl;
     private $apiKey;
@@ -146,8 +146,8 @@ class MedKeyOnboardingClient
 // Exemple d'utilisation
 try {
     // Initialiser le client
-    $client = new MedKeyOnboardingClient(
-        'https://onboarding.medkey.com/api',
+    $client = new AkasiGroupOnboardingClient(
+        'https://onboarding.akasigroup.com/api',
         'YOUR_API_KEY_HERE'
     );
 

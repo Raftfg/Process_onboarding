@@ -12,8 +12,8 @@ MAIL_PORT=2525
 MAIL_USERNAME=votre_username_mailtrap
 MAIL_PASSWORD=votre_password_mailtrap
 MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=noreply@medkey.local
-MAIL_FROM_NAME="MedKey"
+MAIL_FROM_ADDRESS=noreply@akasigroup.local
+MAIL_FROM_NAME="Akasi Group"
 ```
 
 ### Option 2 : Utiliser Gmail (pour le développement)
@@ -25,14 +25,14 @@ MAIL_USERNAME=votre_email@gmail.com
 MAIL_PASSWORD=votre_mot_de_passe_application
 MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS=votre_email@gmail.com
-MAIL_FROM_NAME="MedKey"
+MAIL_FROM_NAME="Akasi Group"
 ```
 
 ### Option 3 : Utiliser le driver log (pour le développement - les emails sont écrits dans les logs)
 ```env
 MAIL_MAILER=log
-MAIL_FROM_ADDRESS=noreply@medkey.local
-MAIL_FROM_NAME="MedKey"
+MAIL_FROM_ADDRESS=noreply@akasigroup.local
+MAIL_FROM_NAME="Akasi Group"
 ```
 
 ### Option 4 : Utiliser SendGrid (pour la production)
@@ -44,7 +44,7 @@ MAIL_USERNAME=apikey
 MAIL_PASSWORD=votre_api_key_sendgrid
 MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS=noreply@votre-domaine.com
-MAIL_FROM_NAME="MedKey"
+MAIL_FROM_NAME="Akasi Group"
 ```
 
 ## Vérification

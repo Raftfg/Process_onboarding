@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tableau de bord - MedKey</title>
+    <title>Tableau de bord - Akasi Group</title>
     <style>
         * {
             margin: 0;
@@ -18,7 +18,7 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
             color: white;
             padding: 20px 30px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -209,7 +209,7 @@
 <body>
     <div class="header">
         <div class="header-content">
-            <h1>MedKey - Tableau de bord</h1>
+            <h1>Akasi Group - Tableau de bord</h1>
             <div class="header-actions">
                 @auth
                 <div class="user-info">
@@ -233,7 +233,7 @@
         @if(isset($onboarding))
             <div class="welcome-card">
                 <h2>Bienvenue, {{ Auth::user()->name ?? Auth::user()->email ?? 'Administrateur' }} !</h2>
-                <p>Votre espace MedKey est maintenant configuré et prêt à l'emploi.</p>
+                <p>Votre espace Akasi Group est maintenant configuré et prêt à l'emploi.</p>
             </div>
 
             <div class="info-grid">

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenue - MedKey</title>
+    <title>Bienvenue - Akasi Group</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -51,7 +51,7 @@
             width: 100px;
             height: 100px;
             margin: 0 auto 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -87,7 +87,7 @@
         .btn {
             display: inline-block;
             padding: 14px 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
             color: white;
             text-decoration: none;
             border-radius: 10px;
@@ -107,13 +107,13 @@
         <div class="card">
             @if($isWelcome)
                 <div class="success-icon">✓</div>
-                <h1>Bienvenue sur MedKey !</h1>
+                <h1>Bienvenue sur Akasi Group !</h1>
                 <p>Votre compte a été créé avec succès.</p>
                 <div class="subdomain">{{ $subdomain }}</div>
                 <p>Vous pouvez maintenant commencer à utiliser votre espace d'administration.</p>
             @else
                 <h1>Bienvenue</h1>
-                <p>Vous êtes sur votre sous-domaine MedKey.</p>
+                <p>Vous êtes sur votre sous-domaine Akasi Group.</p>
                 <div class="subdomain">{{ $subdomain }}</div>
             @endif
             
@@ -122,7 +122,7 @@
                     @if(config('app.env') === 'local')
                         <a href="http://{{ $subdomain }}.localhost:8000/dashboard" class="btn">Accéder au tableau de bord</a>
                     @else
-                        <a href="https://{{ $subdomain }}.{{ config('app.subdomain_base_domain', 'medkey.local') }}/dashboard" class="btn">Accéder au tableau de bord</a>
+                        <a href="https://{{ $subdomain }}.{{ config('app.subdomain_base_domain', 'akasigroup.local') }}/dashboard" class="btn">Accéder au tableau de bord</a>
                     @endif
                 @else
                     <a href="{{ route('dashboard') }}" class="btn">Accéder au tableau de bord</a>
@@ -132,7 +132,7 @@
                     @if(config('app.env') === 'local')
                         <a href="http://{{ $subdomain }}.localhost:8000/login" class="btn">Accéder à mon espace</a>
                     @else
-                        <a href="https://{{ $subdomain }}.{{ config('app.subdomain_base_domain', 'medkey.local') }}/login" class="btn">Accéder à mon espace</a>
+                        <a href="https://{{ $subdomain }}.{{ config('app.subdomain_base_domain', 'akasigroup.local') }}/login" class="btn">Accéder à mon espace</a>
                     @endif
                 @else
                     <a href="{{ route('login') }}" class="btn">Accéder à mon espace</a>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion - MedKey</title>
+    <title>Connexion - Akasi Group</title>
     <style>
         * {
             margin: 0;
@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -33,6 +33,26 @@
         .login-header {
             text-align: center;
             margin-bottom: 30px;
+        }
+
+        .logo {
+            margin-bottom: 20px;
+        }
+
+        .logo img {
+            max-width: 200px;
+            max-height: 80px;
+            object-fit: contain;
+        }
+
+        .logo h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: #00286f;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
         }
 
         .login-header h1 {
@@ -95,7 +115,7 @@
         .btn-login {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #00286f;
             color: white;
             border: none;
             border-radius: 8px;
@@ -140,8 +160,28 @@
 <body>
     <div class="login-container">
         <div class="login-header">
+            <div class="logo">
+                @if(isset($tenantBranding['logo_url']) && $tenantBranding['logo_url'])
+                    @php
+                        // S'assurer que l'URL est absolue
+                        $logoUrl = $tenantBranding['logo_url'];
+                        if (!filter_var($logoUrl, FILTER_VALIDATE_URL)) {
+                            // Si c'est un chemin relatif, le rendre absolu
+                            if (strpos($logoUrl, '/storage/') === 0) {
+                                $logoUrl = request()->getSchemeAndHttpHost() . $logoUrl;
+                            } else {
+                                $logoUrl = asset($logoUrl);
+                            }
+                        }
+                    @endphp
+                    <img src="{{ $logoUrl }}" alt="{{ $tenantBranding['organization_name'] ?? 'Logo' }}" id="tenant-logo" onerror="this.style.display='none'; document.getElementById('logo-text').style.display='block';">
+                    <h1 id="logo-text" style="display: none;">{{ $tenantBranding['organization_name'] ?? 'Akasi Group' }}</h1>
+                @else
+                    <h1>Akasi Group</h1>
+                @endif
+            </div>
             <h1>Connexion</h1>
-            <p>Accédez à votre espace MedKey</p>
+            <p>Accédez à votre espace {{ $tenantBranding['organization_name'] ?? 'Akasi Group' }}</p>
         </div>
 
         @if(session('success'))
@@ -159,7 +199,7 @@
                     type="email" 
                     id="email" 
                     name="email" 
-                    value="{{ old('email') }}" 
+                    value="{{ old('email', $prefilledEmail ?? '') }}" 
                     required 
                     autofocus
                     class="@error('email') error @enderror"

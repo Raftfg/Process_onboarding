@@ -8,7 +8,7 @@
             Bienvenue, {{ Auth::user()->name ?? 'Administrateur' }} !
         </h1>
         <p style="color: #666; font-size: 16px;">
-            {{ $tenantLayout['welcome_message'] ?? 'Voici un aperçu de votre espace MedKey' }}
+            {{ $tenantLayout['welcome_message'] ?? 'Voici un aperçu de votre espace Akasi Group' }}
         </p>
     </div>
 
@@ -95,7 +95,15 @@
     // Graphique d'activité
     const ctx = document.getElementById('activityChart');
     if (ctx) {
-        axios.get('{{ route("dashboard.stats.chart") }}')
+        // Préserver le token auto_login_token dans l'URL de la requête
+        @php
+            $chartUrl = route('dashboard.stats.chart');
+            if (request()->has('auto_login_token')) {
+                $token = request()->query('auto_login_token');
+                $chartUrl .= (str_contains($chartUrl, '?') ? '&' : '?') . 'auto_login_token=' . $token;
+            }
+        @endphp
+        axios.get('{{ $chartUrl }}')
             .then(response => {
                 new Chart(ctx, {
                     type: 'line',

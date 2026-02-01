@@ -5,105 +5,147 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\OnboardingService;
 use App\Services\TenantService;
+use App\Services\ActivationService;
+use App\Mail\ActivationMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class OnboardingApiController extends Controller
 {
     protected $onboardingService;
     protected $tenantService;
+    protected $activationService;
 
-    public function __construct(OnboardingService $onboardingService, TenantService $tenantService)
+    public function __construct(OnboardingService $onboardingService, TenantService $tenantService, ActivationService $activationService)
     {
         $this->onboardingService = $onboardingService;
         $this->tenantService = $tenantService;
+        $this->activationService = $activationService;
     }
 
-    public function complete(Request $request)
+    /**
+     * Traite l'onboarding de manière asynchrone (nouveau flux)
+     */
+    public function processAsync(Request $request)
     {
         try {
-            $onboardingData = Session::get('onboarding_data');
-            
-            // Debug: logger les données de session pour diagnostiquer
-            Log::info('Données de session onboarding:', [
-                'has_data' => !empty($onboardingData),
-                'has_step1' => isset($onboardingData['step1']),
-                'has_step2' => isset($onboardingData['step2']),
-                'session_id' => Session::getId(),
-                'all_session_keys' => Session::all()
+            $validated = $request->validate([
+                'email' => 'required|email|max:255',
+                'organization_name' => 'required|string|max:255',
             ]);
-            
-            if (!$onboardingData || !isset($onboardingData['step1']) || !isset($onboardingData['step2'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Données d\'onboarding incomplètes',
-                    'debug' => [
-                        'has_data' => !empty($onboardingData),
-                        'has_step1' => isset($onboardingData['step1']),
-                        'has_step2' => isset($onboardingData['step2']),
-                    ]
-                ], 400);
-            }
+
+            $email = $validated['email'];
+            $organizationName = $validated['organization_name'];
 
             // Générer un identifiant unique pour le suivi
             $sessionId = Session::getId();
             Session::put('onboarding_session_id', $sessionId);
             Session::put('onboarding_status', 'processing');
+            Session::put('onboarding_email', $email);
+            Session::put('onboarding_organization', $organizationName);
 
-            // Traiter l'onboarding (synchrone pour cette version)
+            // Traiter l'onboarding
             try {
-                $result = $this->onboardingService->processOnboarding($onboardingData);
+                $result = $this->onboardingService->processOnboarding($email, $organizationName);
+                
+                // Vérifier que le token d'activation a été créé
+                if (empty($result['activation_token'])) {
+                    Log::error('Token d\'activation manquant dans le résultat', ['result' => $result]);
+                    throw new \Exception('Erreur lors de la création du token d\'activation');
+                }
+                
+                Log::info('Onboarding traité avec succès', [
+                    'email' => $email,
+                    'subdomain' => $result['subdomain'] ?? null,
+                    'has_token' => !empty($result['activation_token']),
+                ]);
+                
+                // Envoyer l'email d'activation
+                try {
+                    $mailDriver = config('mail.default');
+                    Log::info('Tentative d\'envoi d\'email', [
+                        'email' => $email,
+                        'driver' => $mailDriver,
+                        'from' => config('mail.from.address'),
+                    ]);
+                    
+                    Mail::to($email)->send(
+                        new ActivationMail($email, $organizationName, $result['activation_token'])
+                    );
+                    
+                    Log::info('Email d\'activation envoyé avec succès', [
+                        'email' => $email,
+                        'token' => substr($result['activation_token'], 0, 10) . '...',
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Erreur lors de l\'envoi de l\'email d\'activation', [
+                        'email' => $email,
+                        'error' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    // Ne pas faire échouer le processus si l'email échoue, mais logger l'erreur
+                }
+
                 Session::put('onboarding_status', 'completed');
                 Session::put('onboarding_result', $result);
                 
-                // NE PLUS faire de connexion automatique
-                // L'utilisateur devra se connecter manuellement via la page de connexion
-                
-                // Modifier l'URL de redirection pour pointer vers la page de connexion
-                $subdomain = $result['subdomain'] ?? null;
-                if ($subdomain) {
-                    // Utiliser le format sous-domaine même en local
-                    if (config('app.env') === 'local') {
-                        $loginUrl = "http://{$subdomain}.localhost:8000/login";
-                    } else {
-                        $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
-                        $loginUrl = "https://{$subdomain}.{$baseDomain}/login";
-                    }
-                    
-                    $result['url'] = $loginUrl;
-                    
-                    Log::info('URL de redirection vers login:', ['url' => $loginUrl, 'subdomain' => $subdomain]);
-                }
-                
                 return response()->json([
                     'success' => true,
-                    'message' => 'Onboarding terminé avec succès. Veuillez vous connecter.',
+                    'message' => 'Votre espace Akasi Group a été créé avec succès. Veuillez consulter votre email pour finaliser votre inscription.',
                     'session_id' => $sessionId,
-                    'result' => $result
+                    'result' => [
+                        'subdomain' => $result['subdomain'],
+                        'email' => $email,
+                    ]
                 ]);
             } catch (\Exception $e) {
-                Log::error('Erreur lors de l\'onboarding: ' . $e->getMessage());
+                Log::error('Erreur lors de l\'onboarding: ' . $e->getMessage(), [
+                    'exception' => get_class($e),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                
+                // Formater l'erreur pour l'utilisateur
+                $userMessage = \App\Helpers\ErrorFormatter::formatException($e);
+                
                 Session::put('onboarding_status', 'failed');
-                Session::put('onboarding_error', $e->getMessage());
+                Session::put('onboarding_error', $userMessage);
                 
                 return response()->json([
                     'success' => false,
-                    'message' => 'Erreur lors de l\'onboarding: ' . $e->getMessage(),
+                    'message' => $userMessage,
                     'session_id' => $sessionId
                 ], 500);
             }
-        } catch (\Exception $e) {
-            Log::error('Erreur API onboarding: ' . $e->getMessage());
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Une erreur est survenue: ' . $e->getMessage()
+                'message' => 'Erreur de validation',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Erreur API onboarding: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            // Formater l'erreur pour l'utilisateur
+            $userMessage = \App\Helpers\ErrorFormatter::formatException($e);
+            
+            return response()->json([
+                'success' => false,
+                'message' => $userMessage
             ], 500);
         }
     }
+
+
 
     public function status($sessionId)
     {
@@ -118,50 +160,5 @@ class OnboardingApiController extends Controller
         ]);
     }
 
-    /**
-     * Connecte automatiquement l'utilisateur admin après un onboarding réussi
-     */
-    protected function autoLoginAfterOnboarding(array $result): void
-    {
-        try {
-            $subdomain = $result['subdomain'] ?? null;
-            $adminEmail = $result['admin_email'] ?? null;
-            
-            if (!$subdomain || !$adminEmail) {
-                Log::warning('Impossible de connecter automatiquement: données manquantes');
-                return;
-            }
 
-            // Basculer vers la base du tenant
-            $databaseName = $this->tenantService->getTenantDatabase($subdomain);
-            if ($databaseName) {
-                $this->tenantService->switchToTenantDatabase($databaseName);
-                session(['current_subdomain' => $subdomain]);
-            }
-
-            // Récupérer l'utilisateur depuis la base du tenant
-            $user = \App\Models\User::where('email', $adminEmail)->first();
-            
-            if ($user) {
-                // Connecter l'utilisateur avec "remember" pour persister la session
-                Auth::login($user, true);
-                
-                // Régénérer la session pour sécuriser
-                Session::regenerate();
-                
-                // Sauvegarder la session pour s'assurer qu'elle est persistée
-                Session::save();
-                
-                Log::info("Connexion automatique réussie pour: {$adminEmail}", [
-                    'user_id' => $user->id,
-                    'session_id' => Session::getId()
-                ]);
-            } else {
-                Log::warning("Utilisateur non trouvé pour connexion automatique: {$adminEmail}");
-            }
-        } catch (\Exception $e) {
-            Log::error('Erreur lors de la connexion automatique: ' . $e->getMessage());
-            // Ne pas faire échouer l'onboarding si la connexion automatique échoue
-        }
-    }
 }

@@ -38,7 +38,13 @@ class LoginController extends Controller
             $subdomain = $parts[0];
         }
 
-        return view('auth.login', ['subdomain' => $subdomain]);
+        // Récupérer l'email depuis la query string si présent (pour pré-remplir depuis root-login)
+        $email = $request->query('email');
+
+        return view('auth.login', [
+            'subdomain' => $subdomain,
+            'prefilledEmail' => $email,
+        ]);
     }
 
     /**
@@ -101,8 +107,15 @@ class LoginController extends Controller
             ]);
         }
 
+        Log::info('Tentative Authenticate.attempt', [
+            'email' => $credentials['email'],
+            'database' => \Illuminate\Support\Facades\DB::connection()->getDatabaseName(),
+            'subdomain' => $subdomain
+        ]);
+
         // Tenter la connexion (sur la base du tenant si sous-domaine présent)
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            Log::info('Authentification réussie');
             $request->session()->regenerate();
 
             // S'assurer que le sous-domaine est stocké dans la session
@@ -125,17 +138,14 @@ class LoginController extends Controller
                 Log::warning('Impossible de créer l\'activité de connexion: ' . $e->getMessage());
             }
             
-            // Si l'utilisateur n'a jamais changé son mot de passe, le rediriger vers le changement
-            if ($user->password_changed_at === null) {
-                return redirect()->route('password.change');
-            }
+
 
             // Rediriger vers le dashboard avec le sous-domaine dans l'URL (sans paramètre subdomain)
             if (config('app.env') === 'local' && $subdomain) {
                 $redirectUrl = "http://{$subdomain}.localhost:8000/dashboard";
             } else {
                 if ($subdomain) {
-                    $baseDomain = config('app.subdomain_base_domain', 'medkey.local');
+                    $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
                     $redirectUrl = "https://{$subdomain}.{$baseDomain}/dashboard";
                 } else {
                     $redirectUrl = route('dashboard');
