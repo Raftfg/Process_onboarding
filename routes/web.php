@@ -10,13 +10,26 @@ Route::get('/', function (Request $request) {
     $host = $request->getHost();
     $parts = explode('.', $host);
     
+    // Déterminer si on est en local ou sur Laravel Cloud
+    $isLocal = config('app.env') === 'local';
+    $isLaravelCloud = str_contains($host, 'laravel.cloud');
+    
     // Détecter si on est sur un sous-domaine
     $isSubdomain = false;
-    if (config('app.env') === 'local') {
+    
+    if ($isLocal) {
+        // En local: subdomain.localhost (2+ parties avec localhost)
         if (count($parts) >= 2 && $parts[1] === 'localhost') {
             $isSubdomain = true;
         }
+    } elseif ($isLaravelCloud) {
+        // Sur Laravel Cloud: subdomain.app-name.laravel.cloud (4+ parties)
+        // Le domaine principal est app-name.laravel.cloud (3 parties)
+        if (count($parts) >= 4) {
+            $isSubdomain = true;
+        }
     } else {
+        // Autre production: subdomain.domain.tld (3+ parties)
         $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
         $baseParts = explode('.', $baseDomain);
         if (count($parts) > count($baseParts)) {

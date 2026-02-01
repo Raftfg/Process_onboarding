@@ -18,8 +18,12 @@ class RootDomain
         $host = $request->getHost();
         $parts = explode('.', $host);
         
+        // Déterminer si on est en local ou sur Laravel Cloud
+        $isLocal = config('app.env') === 'local';
+        $isLaravelCloud = str_contains($host, 'laravel.cloud');
+        
         // En local: vérifier que ce n'est pas un sous-domaine
-        if (config('app.env') === 'local') {
+        if ($isLocal) {
             // Format local: subdomain.localhost ou localhost ou 127.0.0.1
             // Si on a au moins 2 parties et la deuxième est "localhost", c'est un sous-domaine
             if (count($parts) >= 2 && $parts[1] === 'localhost') {
@@ -27,6 +31,14 @@ class RootDomain
                 return redirect('/');
             }
             // Si c'est localhost, 127.0.0.1, ou un autre format sans sous-domaine, laisser passer
+        } elseif ($isLaravelCloud) {
+            // Sur Laravel Cloud: app-name.laravel.cloud (3 parties) = domaine principal
+            // subdomain.app-name.laravel.cloud (4+ parties) = sous-domaine
+            if (count($parts) >= 4) {
+                // C'est un sous-domaine, rediriger vers la page d'accueil
+                return redirect('/');
+            }
+            // Si c'est le domaine principal (3 parties), laisser passer
         } else {
             // En production: vérifier que le host est exactement le domaine de base
             $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
