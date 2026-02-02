@@ -161,4 +161,63 @@ class OnboardingApiController extends Controller
     }
 
 
+    /**
+     * Endpoint pour l'onboarding depuis une application externe (Secteur)
+     */
+    public function externalStore(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'email' => 'required|email|max:255',
+                'organization_name' => 'required|string|max:255',
+                'callback_url' => 'nullable|url',
+                'migrations' => 'nullable|array',
+                'migrations.*.filename' => 'required_with:migrations|string',
+                'migrations.*.content' => 'required_with:migrations|string',
+                'metadata' => 'nullable|array',
+            ]);
+
+            // Récupérer le nom de l'application source depuis le header
+            // Supporte X-App-Name ou X-Source-App
+            $sourceAppName = $request->header('X-App-Name') ?? $request->header('X-Source-App');
+
+            if (!$sourceAppName) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le header X-App-Name est obligatoire.'
+                ], 400);
+            }
+
+            $result = $this->onboardingService->processExternalOnboarding(
+                $validated['email'],
+                $validated['organization_name'],
+                $validated['callback_url'] ?? null,
+                $validated['migrations'] ?? [],
+                $validated['metadata'] ?? [],
+                $sourceAppName
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Onboarding externe initié avec succès',
+                'result' => $result
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Erreur onboarding externe: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

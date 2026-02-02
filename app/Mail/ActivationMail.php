@@ -33,7 +33,7 @@ class ActivationMail extends Mailable
 
     public function build()
     {
-        return $this->subject('🎉 Activez votre compte Akasi Group - ' . $this->organizationName)
+        return $this->subject('Akasi Group - Confirmez votre adresse email')
                     ->view('emails.activation')
                     ->with([
                         'email' => $this->email,

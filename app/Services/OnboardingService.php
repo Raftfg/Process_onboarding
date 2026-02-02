@@ -11,6 +11,9 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Config;
 use App\Mail\OnboardingWelcomeMail;
 use App\Models\OnboardingSession;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Artisan;
 use App\Models\User;
 use App\Services\TenantService;
 use App\Services\WebhookService;
@@ -30,17 +33,40 @@ class OnboardingService
     }
 
     /**
+     * Traite l'onboarding pour une application externe
+     * (Accepte des migrations dynamiques, une URL de callback, et un nom d'application source)
+     */
+    public function processExternalOnboarding(string $email, string $organizationName, string $callbackUrl = null, array $migrations = [], array $metadata = [], string $sourceAppName = null): array
+    {
+        // 1. Démarrer comme un onboarding standard (en passant sourceAppName via metadata temporairement ou modifiant processOnboarding)
+        // Pour garder la signature propre, on passe sourceAppName à processOnboarding
+        $result = $this->processOnboarding($email, $organizationName, $metadata, $sourceAppName);
+
+        // 2. Exécuter les migrations dynamiques si présentes
+        if (!empty($migrations)) {
+            $this->runDynamicMigrations($migrations, $result['database']);
+        }
+
+        // 3. Envoyer le callback si demandé
+        if ($callbackUrl) {
+            $this->sendCallback($callbackUrl, $result);
+        }
+
+        return $result;
+    }
+
+    /**
      * Traite l'onboarding avec seulement email et organisation
      * Ne crée pas l'utilisateur admin (sera fait lors de l'activation)
      */
-    public function processOnboarding(string $email, string $organizationName, array $metadata = []): array
+    public function processOnboarding(string $email, string $organizationName, array $metadata = [], string $sourceAppName = null): array
     {
         try {
             // Vérifier que l'email est unique
             $this->validateEmailUnique($email);
             
-            // Vérifier que le nom de l'organisation est unique
-            $this->validateOrganizationNameUnique($organizationName);
+            // Vérifier que le nom de l'organisation est unique (SCOPÉ par Application)
+            $this->validateOrganizationNameUnique($organizationName, $sourceAppName);
             
             // Générer un slug unique et un sous-domaine unique
             $slug = $this->generateUniqueSlug($organizationName);
@@ -59,7 +85,7 @@ class OnboardingService
             $this->createSubdomain($subdomain);
             
             // Enregistrer la session d'onboarding (dans la base principale)
-            $this->saveOnboardingSessionNew($email, $organizationName, $slug, $subdomain, $databaseName, $metadata);
+            $this->saveOnboardingSessionNew($email, $organizationName, $slug, $subdomain, $databaseName, $metadata, $sourceAppName);
             
             // Basculer vers la base du tenant
             $this->tenantService->switchToTenantDatabase($databaseName);
@@ -122,7 +148,7 @@ class OnboardingService
     /**
      * Enregistre la session d'onboarding avec les nouvelles données (email + organisation uniquement)
      */
-    protected function saveOnboardingSessionNew(string $email, string $organizationName, string $slug, string $subdomain, string $databaseName, array $metadata = []): void
+    protected function saveOnboardingSessionNew(string $email, string $organizationName, string $slug, string $subdomain, string $databaseName, array $metadata = [], string $sourceAppName = null): void
     {
         try {
             // Vérifier si un enregistrement avec ce sous-domaine existe déjà
@@ -141,6 +167,7 @@ class OnboardingService
                     'status' => 'pending_activation', // Statut en attente d'activation
                     'completed_at' => null,
                     'metadata' => $metadata,
+                    'source_app_name' => $sourceAppName, // Sauvegarde de l'app appelante
                 ];
                 
                 // Ajouter les champs requis seulement s'ils sont vides
@@ -169,6 +196,7 @@ class OnboardingService
                     'status' => 'pending_activation', // Statut en attente d'activation
                     'completed_at' => null,
                     'metadata' => $metadata,
+                    'source_app_name' => $sourceAppName, // Sauvegarde de l'app appelante
                 ]);
                 Log::info("Nouvelle session d'onboarding créée pour: {$subdomain} (ID: {$session->id})");
             }
@@ -232,15 +260,32 @@ class OnboardingService
     
     /**
      * Valide que le nom de l'organisation est unique
+     * Si sourceAppName est fourni, l'unicité est vérifiée UNIQUEMENT au sein de cette app.
      */
-    protected function validateOrganizationNameUnique(string $organizationName): void
+    protected function validateOrganizationNameUnique(string $organizationName, string $sourceAppName = null): void
     {
-        $exists = OnboardingSession::on('mysql')
-            ->where('organization_name', $organizationName)
-            ->exists();
+        $query = OnboardingSession::on('mysql')
+            ->where('organization_name', $organizationName);
+            
+        // Si une app source est définie, on filtre aussi par elle
+        if ($sourceAppName) {
+            $query->where('source_app_name', $sourceAppName);
+        } else {
+            // Si pas d'app source (legacy/interne), on vérifie les entrées sans app source
+            // OU on garde le comportement global strict si on préfère.
+            // Pour l'instant, disons que NULL ne conflit pas avec "AppA".
+            $query->whereNull('source_app_name');
+        }
+            
+        $exists = $query->exists();
         
         if ($exists) {
-            throw new \Exception("Une organisation avec le nom '{$organizationName}' existe déjà. Veuillez choisir un autre nom.");
+            $msg = "Une organisation avec le nom '{$organizationName}' existe déjà";
+            if ($sourceAppName) {
+                $msg .= " pour l'application {$sourceAppName}";
+            }
+            $msg .= ". Veuillez choisir un autre nom.";
+            throw new \Exception($msg);
         }
     }
     
@@ -594,6 +639,76 @@ class OnboardingService
                 'trace' => $e->getTraceAsString()
             ]);
             // Ne pas faire échouer tout le processus si l'email échoue
+        }
+    }
+    protected function runDynamicMigrations(array $migrations, string $databaseName): void
+    {
+        $tempPath = storage_path('app/temp/migrations/' . uniqid());
+        
+        try {
+            if (!File::exists($tempPath)) {
+                File::makeDirectory($tempPath, 0755, true);
+            }
+
+            foreach ($migrations as $migration) {
+                // Validation simple
+                if (!isset($migration['filename']) || !isset($migration['content'])) {
+                    continue;
+                }
+                
+                // Ajouter le timestamp à chaque fichier pour garantir l'ordre
+                $filename = $migration['filename'];
+                if (!preg_match('/^\d{4}_\d{2}_\d{2}_\d{6}_/', $filename)) {
+                    $filename = date('Y_m_d_His_') . $filename;
+                }
+
+                File::put($tempPath . '/' . $filename, $migration['content']);
+            }
+
+            Log::info("Exécution des migrations dynamiques pour {$databaseName} depuis {$tempPath}");
+
+            // Exécuter les migrations sur la base tenant
+            // Note: On doit configurer temporairement 'tenant' connection si ce n'est pas déjà fait,
+            // mais ici on suppose que processOnboarding a déjà switché ou qu'on le fait explicitement.
+            // processOnboarding() reset à 'mysql' à la fin, donc on doit reswitcher.
+            $this->tenantService->switchToTenantDatabase($databaseName);
+
+            Artisan::call('migrate', [
+                '--database' => 'tenant',
+                '--path' => str_replace(base_path(), '', $tempPath),
+                '--force' => true,
+            ]);
+
+            Log::info("Migrations dynamiques terminées");
+
+        } catch (\Exception $e) {
+            Log::error("Erreur migrations dynamiques: " . $e->getMessage());
+            // On throw l'exception pour que l'appelant sache qu'il y a eu un souci
+            throw $e;
+        } finally {
+            // Nettoyage: supprimer le dossier temporaire
+            if (File::exists($tempPath)) {
+                File::deleteDirectory($tempPath);
+            }
+            
+            // Revenir à la base core par sécurité
+            Config::set('database.default', 'mysql');
+            DB::purge('tenant');
+        }
+    }
+
+    protected function sendCallback(string $url, array $data): void
+    {
+        try {
+            Log::info("Envoi du callback vers {$url}");
+            
+            Http::timeout(10)
+                ->retry(2, 100)
+                ->post($url, $data);
+                
+        } catch (\Exception $e) {
+            Log::warning("Echec de l'envoi du callback: " . $e->getMessage());
+            // On ne throw PAS l'exception ici car le tenant est créé, c'est juste la notif qui a échoué.
         }
     }
 }

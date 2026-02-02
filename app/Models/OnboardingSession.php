@@ -20,7 +20,8 @@ class OnboardingSession extends Model
         'database_name',
         'status',
         'metadata',
-        'completed_at'
+        'completed_at',
+        'source_app_name',
     ];
 
     protected $casts = [

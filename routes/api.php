@@ -34,3 +34,7 @@ Route::prefix('onboarding')->middleware('web')->group(function () {
     Route::post('/process', [OnboardingApiController::class, 'processAsync'])->name('api.onboarding.process');
     Route::get('/status/{sessionId}', [OnboardingApiController::class, 'status'])->name('api.onboarding.status');
 });
+
+Route::prefix('v1')->group(function () {
+    Route::post('/onboarding/external', [OnboardingApiController::class, 'externalStore']);
+});
