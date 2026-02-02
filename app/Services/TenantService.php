@@ -99,7 +99,7 @@ class TenantService
      * Trouve tous les sous-domaines associés à un email
      * 
      * @param string $email
-     * @return array Array of ['subdomain' => string, 'database_name' => string, 'hospital_name' => string, 'user_role' => string|null]
+     * @return array Array of ['subdomain' => string, 'database_name' => string, 'organization_name' => string, 'user_role' => string|null]
      */
     public function findSubdomainsByEmail(string $email): array
     {
@@ -159,7 +159,7 @@ class TenantService
                         $results[] = [
                             'subdomain' => $session->subdomain,
                             'database_name' => $session->database_name,
-                            'hospital_name' => $session->hospital_name,
+                            'organization_name' => $session->organization_name,
                             'user_role' => $user->role ?? null,
                         ];
                     }
@@ -173,7 +173,7 @@ class TenantService
                         $results[] = [
                             'subdomain' => $session->subdomain,
                             'database_name' => $session->database_name,
-                            'hospital_name' => $session->hospital_name,
+                            'organization_name' => $session->organization_name,
                             'user_role' => 'admin', // Probablement admin si c'est l'admin_email
                         ];
                     }
@@ -227,7 +227,7 @@ class TenantService
                         $results[] = [
                             'subdomain' => $session->subdomain,
                             'database_name' => $session->database_name,
-                            'hospital_name' => $session->hospital_name,
+                            'organization_name' => $session->organization_name,
                             'user_role' => $user->role ?? null,
                         ];
                     }

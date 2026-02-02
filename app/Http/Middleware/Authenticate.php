@@ -19,10 +19,14 @@ class Authenticate extends Middleware
      */
     public function handle($request, Closure $next, ...$guards)
     {
-        // IMPORTANT: Configurer le domaine de session pour le partage entre domaines
-        // En local, utiliser .localhost pour partager la session entre tous les sous-domaines
+        // Configuration dynamique du domaine de session
+        // On n'injecte .localhost que si on n'utilise pas une adresse IP
+        // Cela permet de supporter 127.0.0.1 tout en permettant le partage sur localhost
         if (config('app.env') === 'local' && !config('session.domain')) {
-            config(['session.domain' => '.localhost']);
+            $host = $request->getHost();
+            if (!filter_var($host, FILTER_VALIDATE_IP) && ($host === 'localhost' || str_ends_with($host, '.localhost'))) {
+                config(['session.domain' => '.localhost']);
+            }
         }
         
         // Extraire le sous-domaine depuis l'URL ou la session
@@ -177,14 +181,7 @@ class Authenticate extends Middleware
                             \Illuminate\Support\Facades\Auth::login($user, true);
                         }
                         
-                        // IMPORTANT: Configurer le domaine de session pour le partage entre domaines
-                        // En local, utiliser .localhost pour partager la session entre tous les sous-domaines
-                        if (config('app.env') === 'local' && !config('session.domain')) {
-                            config(['session.domain' => '.localhost']);
-                            \Illuminate\Support\Facades\Log::info('Domaine de session configuré pour partage entre domaines', [
-                                'session_domain' => '.localhost',
-                            ]);
-                        }
+                        // Le domaine de session est géré par la config
                         
                         // Sauvegarder la session APRÈS régénération et configuration du domaine
                         session()->save();
@@ -233,9 +230,17 @@ class Authenticate extends Middleware
                                 'path' => $request->path(),
                             ]);
                             
+                            // Injecter manuellement le message de succès dans la session du sous-domaine
+                            // pour compenser la perte de session cross-domain lors du passage de 127.0.0.1 à subdomain.localhost
+                            if (!session()->has('success')) {
+                                session()->flash('success', 'Votre compte a été activé avec succès ! Bienvenue sur votre espace Akasi Group.');
+                                session()->save();
+                            }
+
                             // Ne PAS rediriger, continuer vers le contrôleur
                             // Le token sera supprimé de l'URL lors de la vérification après token
                             // On continue l'exécution du middleware sans redirection
+                            \Illuminate\Support\Facades\Log::info('Message de succès injecté manuellement dans la session du sous-domaine.');
                         } else {
                             // Si on n'est pas sur le dashboard, rediriger vers le dashboard avec le token
                             if (config('app.env') === 'local') {
@@ -252,7 +257,7 @@ class Authenticate extends Middleware
                                 'subdomain' => $subdomain,
                             ]);
                             
-                            return redirect()->away($dashboardUrl)->with('success', 'Connexion réussie ! Bienvenue sur votre espace Akasi Group.');
+                            return redirect()->away($dashboardUrl)->with('success', 'Votre compte a été activé avec succès ! Bienvenue sur votre espace Akasi Group.');
                         }
                     } else {
                         \Illuminate\Support\Facades\Log::warning('Utilisateur non trouvé avec le token', [

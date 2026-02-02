@@ -246,7 +246,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
-            @if(session('success'))
+            @if(session('success') && !request()->is('/'))
                 Swal.fire({
                     icon: 'success',
                     title: 'Succès',

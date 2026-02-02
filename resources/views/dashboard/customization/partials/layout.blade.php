@@ -14,22 +14,22 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                 <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
                     <input type="checkbox" name="dashboard_widgets[stats]" value="1" {{ ($layout['dashboard_widgets']['stats'] ?? true) ? 'checked' : '' }}>
-                    <span>📊 Statistiques</span>
+                    <span>Statistiques</span>
                 </label>
                 
                 <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
                     <input type="checkbox" name="dashboard_widgets[activities]" value="1" {{ ($layout['dashboard_widgets']['activities'] ?? true) ? 'checked' : '' }}>
-                    <span>📝 Activités récentes</span>
+                    <span>Activités récentes</span>
                 </label>
                 
                 <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
                     <input type="checkbox" name="dashboard_widgets[calendar]" value="1" {{ ($layout['dashboard_widgets']['calendar'] ?? true) ? 'checked' : '' }}>
-                    <span>📅 Calendrier</span>
+                    <span>Calendrier</span>
                 </label>
                 
                 <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
                     <input type="checkbox" name="dashboard_widgets[quick_actions]" value="1" {{ ($layout['dashboard_widgets']['quick_actions'] ?? true) ? 'checked' : '' }}>
-                    <span>⚡ Actions rapides</span>
+                    <span>Actions rapides</span>
                 </label>
             </div>
         </div>

@@ -8,7 +8,7 @@
         <div id="menu-items" style="margin-bottom: 20px;">
             @foreach($menu['items'] ?? [] as $index => $item)
                 <div class="menu-item" style="display: flex; gap: 10px; align-items: center; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; background: #f9fafb;">
-                    <div style="cursor: move; font-size: 20px;">☰</div>
+                    <div style="cursor: move; font-size: 12px; color: #999;">DRAG</div>
                     
                     <input type="hidden" name="items[{{ $index }}][key]" value="{{ $item['key'] }}">
                     

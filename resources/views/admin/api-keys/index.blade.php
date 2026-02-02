@@ -25,7 +25,7 @@
 
     @if(session('new_api_key'))
         <div class="card" style="border: 2px solid #667eea; background: #f0f4ff;">
-            <h3 style="color: #4c51bf; margin-bottom: 10px;">⚠️ Nouvelle Clé API Générée</h3>
+            <h3 style="color: #4c51bf; margin-bottom: 10px;">Nouvelle Clé API Générée</h3>
             <p style="margin-bottom: 15px;">Pour : <strong>{{ session('new_api_key_name') }}</strong></p>
             <div style="background: white; padding: 15px; border-radius: 8px; border: 1px dashed #667eea; font-family: monospace; font-size: 18px; margin-bottom: 15px; word-break: break-all;">
                 {{ session('new_api_key') }}

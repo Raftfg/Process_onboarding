@@ -1,246 +1,112 @@
-# Akasi Group - Système d'Onboarding Multi-Tenant
+# Akasi Onboarding Microservice
 
-Système d'onboarding réutilisable pour Akasi Group permettant de créer automatiquement des sous-domaines et bases de données pour chaque nouvel hôpital.
+Ce microservice est une solution d'onboarding **SaaS Multi-tenant** robuste et réutilisable, conçue pour gérer la création dynamique d'espaces clients (tenants) avec isolation complète des données (une base de données par client).
 
-## 🎯 Intégration dans votre projet
+## 🚀 Fonctionnalités Clés
 
-**Vous voulez utiliser ce microservice dans votre projet ?** 
+- **Multi-tenancy Dynamique** : Isolation totale via des bases de données séparées.
+- **Gestion de Sous-domaines** : Chaque tenant accède à son propre espace via `client.votre-domaine.com`.
+- **Flux d'Onboarding Complet** : 
+  - Formulaire d'inscription avec validation reCAPTCHA.
+  - Système d'activation par email sécurisé (tokens à usage unique).
+  - Provisioning automatique de la base de données et des tables nécessaires.
+- **Tableau de Bord Administrateur (Super Admin)** : Pour gérer les tenants, surveiller l'activité et générer des clés API.
+- **API Publique** : Permet l'intégration de l'onboarding dans d'autres applications.
+- **Système de Webhooks** : Notifications en temps réel (avec signature HMAC) lors des événements d'onboarding.
+- **Personnalisation (White-label)** : Les clients peuvent personnaliser leur logo, leurs couleurs et leur menu depuis leur propre dashboard.
+- **Design Minimaliste** : Interface moderne, épurée et sans surcharge visuelle.
 
-👉 Consultez le **[Guide d'Intégration complet](INTEGRATION.md)** qui explique comment :
-- Intégrer via API REST (sans installation)
-- Utiliser les exemples de code (JavaScript, PHP, React, Vue.js)
-- Configurer les webhooks
-- Gérer l'authentification
+## 🛠 Prérequis
 
-**Démarrage rapide :**
-```javascript
-// Exemple JavaScript
-const response = await fetch('https://onboarding.akasigroup.com/api/onboarding/create', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer YOUR_API_KEY'
-  },
-  body: JSON.stringify({
-    hospital: { name: 'Hôpital Central', ... },
-    admin: { first_name: 'Jean', ... }
-  })
-});
-```
-
-Voir les [exemples complets](examples/) pour plus de détails.
-
-## 🚀 Installation
-
-### Prérequis
-- PHP >= 8.1
+- PHP 8.1+
+- MySQL 8.0+
+- Serveur Web (Apache/Nginx) supportant les Wildcard Subdomains
 - Composer
-- MySQL/MariaDB
-- Extension PDO MySQL
 
-### Étapes d'installation
+## 📦 Installation
 
-1. **Installer les dépendances** :
-```bash
-composer install
+1. **Clonage et Dépendances**
+   ```bash
+   git clone [url-du-repo]
+   composer install
+   ```
+
+2. **Configuration**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+   *Note : Configurez vos accès MySQL dans le `.env`. L'utilisateur MySQL doit avoir les droits `CREATE DATABASE`.*
+
+3. **Base de Données Centrale**
+   ```bash
+   php artisan migrate --seed
+   ```
+   *Le seeder crée l'administrateur par défaut : `admin@akasi.com` / `password`.*
+
+4. **Lien de Stockage**
+   ```bash
+   php artisan storage:link
+   ```
+
+## ⚙️ Configuration Spécifique
+
+### Domaines et Sessions
+Pour que l'authentification fonctionne sur les sous-domaines, configurez :
+- `SESSION_DOMAIN=.votre-domaine.com` (Notez le point au début).
+- En développement local avec `127.0.0.1`, laissez `SESSION_DOMAIN` vide (le système s'adaptera dynamiquement).
+
+### Wildcard Subdomains
+Assurez-vous que votre serveur web ou votre DNS redirige `*.votre-domaine.com` vers le répertoire `public` du projet.
+
+## 🔌 API Publique
+
+### Authentification API
+Toutes les requêtes API doivent inclure le header :
+`X-API-Key: votre_cle_api`
+*(Générez vos clés dans le Dashboard Super Admin)*
+
+### Endpoints Principaux
+
+| Méthode | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/onboarding/create` | Crée un nouvel onboarding |
+| `GET` | `/api/onboarding/status/{subdomain}` | Récupère le statut d'un tenant |
+| `POST` | `/api/webhooks/register` | Enregistre une URL de webhook |
+
+### Exemple de création d'onboarding
+```json
+{
+  "organization": {
+    "name": "Hôpital Central",
+    "email": "contact@hopital.com"
+  },
+  "admin": {
+    "first_name": "Jean",
+    "last_name": "Dupont",
+    "email": "admin@hopital.com"
+  }
+}
 ```
 
-2. **Copier le fichier `.env.example` vers `.env`** :
-```bash
-cp .env.example .env
-```
+## 🪝 Webhooks
 
-3. **Générer la clé d'application** :
-```bash
-php artisan key:generate
-```
+Le service envoie un JSON signé vers vos URLs enregistrées lors de la complétion d'un onboarding.
+**Vérification de signature** : Le header `X-Akasi-Signature` contient le hash HMAC SHA256 du body, calculé avec votre `WEBHOOK_SECRET`.
 
-4. **Configurer la base de données dans `.env`** :
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=onboarding
-DB_USERNAME=root
-DB_PASSWORD=votre_mot_de_passe
+## 🎨 Personnalisation
 
-# Credentials root MySQL pour créer les bases de données
-DB_ROOT_USERNAME=root
-DB_ROOT_PASSWORD=votre_mot_de_passe_root
-```
+Le système de "Branding" permet de modifier :
+- **Couleurs** : Primaire, secondaire, accent et fond.
+- **Interface** : Logo personnalisé et message de bienvenue.
+- **Navigation** : Réorganisation et renommage des menus de la sidebar.
 
-5. **Exécuter les migrations** :
-```bash
-php artisan migrate
-```
+## 🛡 Sécurité
 
-6. **Configurer le mail (optionnel)** :
-```env
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.mailtrap.io
-MAIL_PORT=2525
-MAIL_USERNAME=votre_username
-MAIL_PASSWORD=votre_password
-MAIL_FROM_ADDRESS="noreply@akasigroup.com"
-MAIL_FROM_NAME="Akasi Group"
-```
+- Isolation stricte des bases de données.
+- Protection contre les attaques par force brute sur l'activation.
+- Validation reCAPTCHA sur les formulaires publics.
+- Tokens d'auto-login à usage unique et courte durée.
 
-7. **Démarrer le serveur de développement** :
-```bash
-php artisan serve
-```
-
-Accédez à `http://localhost:8000` pour commencer l'onboarding.
-
-## ⚙️ Configuration
-
-### Variables d'environnement importantes
-
-- `SUBDOMAIN_BASE_DOMAIN` : Domaine de base pour les sous-domaines (ex: akasigroup.local)
-- `SUBDOMAIN_WEB_ROOT` : Chemin racine web pour les sous-domaines
-- `DB_ROOT_USERNAME` : Nom d'utilisateur root MySQL pour créer les bases de données
-- `DB_ROOT_PASSWORD` : Mot de passe root MySQL
-
-### Configuration des sous-domaines
-
-Voir le fichier `SUBDOMAIN_SETUP.md` pour les instructions détaillées sur la configuration Apache/Nginx et DNS.
-
-## ✨ Fonctionnalités
-
-1. **Page de bienvenue** : Accueil avec bouton "Démarrer"
-2. **Étape 1** : Saisie des informations de l'hôpital
-   - Nom de l'hôpital (obligatoire)
-   - Adresse
-   - Téléphone
-   - Email
-3. **Étape 2** : Saisie des informations de l'administrateur
-   - Prénom et nom
-   - Email administrateur
-   - Mot de passe (minimum 8 caractères)
-4. **Traitement automatique** : 
-   - Création automatique de la base de données
-   - Génération du sous-domaine
-   - Envoi d'email de bienvenue à l'administrateur
-   - Redirection vers le sous-domaine avec message de bienvenue
-
-## 📁 Structure du projet
-
-```
-app/
-├── Http/
-│   ├── Controllers/
-│   │   ├── Api/
-│   │   │   └── OnboardingApiController.php  # API pour le traitement
-│   │   ├── OnboardingController.php        # Contrôleur pour les vues
-│   │   └── WelcomeController.php          # Page de bienvenue
-│   └── ...
-├── Mail/
-│   └── OnboardingWelcomeMail.php           # Email de bienvenue
-├── Models/
-│   └── OnboardingSession.php               # Modèle pour les sessions
-└── Services/
-    └── OnboardingService.php               # Logique métier
-
-resources/
-└── views/
-    ├── layouts/
-    │   └── app.blade.php                   # Layout principal
-    ├── onboarding/
-    │   ├── welcome.blade.php               # Page 1: Bienvenue
-    │   ├── step1.blade.php                 # Page 2: Infos hôpital
-    │   └── step2.blade.php                 # Page 3: Infos admin
-    ├── welcome.blade.php                   # Page de bienvenue sous-domaine
-    └── emails/
-        └── onboarding-welcome.blade.php    # Template email
-
-routes/
-├── web.php                                 # Routes web
-└── api.php                                 # Routes API
-```
-
-## 🎨 Design
-
-Le système utilise un design moderne avec :
-- Interface responsive
-- Animations fluides
-- Indicateur de progression
-- Écran de chargement pendant le traitement
-- Design gradient moderne (violet/bleu)
-
-## 🔒 Sécurité
-
-- Validation des données côté serveur
-- Protection CSRF
-- Mots de passe minimum 8 caractères avec confirmation
-- Validation des emails
-- Sessions sécurisées
-
-## 📝 Notes importantes
-
-- **Production** : Vous devrez implémenter la création réelle des vhosts Apache/Nginx (voir `SUBDOMAIN_SETUP.md`)
-- **DNS** : La gestion DNS doit être configurée selon votre infrastructure
-- **Base de données** : Les bases de données sont créées avec le préfixe `akasigroup_`
-- **Sous-domaines** : Les sous-domaines sont générés à partir du nom de l'hôpital (slugifié)
-
-## 🧪 Tests
-
-### Tests d'onboarding
-
-Le projet inclut un script de test complet pour valider le processus d'onboarding :
-
-**Via Artisan (recommandé) :**
-```bash
-# Exécuter tous les tests
-php artisan test:onboarding
-
-# Exécuter les tests et nettoyer les données après
-php artisan test:onboarding --clean
-
-# Utiliser un sous-domaine spécifique
-php artisan test:onboarding --subdomain=mon-test
-```
-
-**Via scripts shell :**
-```bash
-# Linux/Mac
-./test-onboarding.sh
-
-# Windows
-test-onboarding.bat
-
-# Avec nettoyage automatique
-./test-onboarding.sh --clean
-```
-
-**Tests PHPUnit :**
-```bash
-php artisan test --filter OnboardingTest
-```
-
-### Ce qui est testé
-
-- ✅ Création de la base de données
-- ✅ Processus d'onboarding complet
-- ✅ Création de l'utilisateur admin
-- ✅ Basculement entre bases de données
-- ✅ Authentification de l'utilisateur
-- ✅ Session d'onboarding
-
-## 🐛 Dépannage
-
-### Erreur de création de base de données
-- Vérifiez que `DB_ROOT_USERNAME` et `DB_ROOT_PASSWORD` sont corrects
-- Assurez-vous que l'utilisateur MySQL a les droits de création de bases de données
-
-### Email non envoyé
-- Vérifiez la configuration SMTP dans `.env`
-- Pour le développement, utilisez Mailtrap ou un service similaire
-
-### Sous-domaine non accessible
-- Vérifiez la configuration Apache/Nginx
-- Ajoutez l'entrée dans `/etc/hosts` pour le développement local
-- Voir `SUBDOMAIN_SETUP.md` pour plus de détails
-
-## 📄 Licence
-
-MIT
+---
+© 2026 Akasi Group. Tous droits réservés.

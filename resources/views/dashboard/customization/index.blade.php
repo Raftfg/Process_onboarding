@@ -22,13 +22,13 @@
 
     <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); overflow-x: auto;">
         <button onclick="showTab('branding')" id="tab-branding" class="tab-button active" style="padding: 12px 20px; border: none; background: transparent; border-bottom: 3px solid var(--primary-color); cursor: pointer; font-weight: 600; color: var(--primary-color); white-space: nowrap; flex-shrink: 0;">
-            🎨 Branding
+            Branding
         </button>
         <button onclick="showTab('layout')" id="tab-layout" class="tab-button" style="padding: 12px 20px; border: none; background: transparent; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 600; color: #666; white-space: nowrap; flex-shrink: 0;">
-            📐 Layout
+            Layout
         </button>
         <button onclick="showTab('menu')" id="tab-menu" class="tab-button" style="padding: 12px 20px; border: none; background: transparent; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 600; color: #666; white-space: nowrap; flex-shrink: 0;">
-            📋 Menu
+            Menu
         </button>
     </div>
 

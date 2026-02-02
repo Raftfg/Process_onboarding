@@ -42,7 +42,7 @@
                     }
                 @endphp
                 <a href="{{ $menuUrl }}" class="nav-item {{ request()->routeIs($routeMap[$item['key']]['pattern']) ? 'active' : '' }}">
-                    <i>{{ $item['icon'] ?? '📋' }}</i> {{ $item['label'] ?? ucfirst($item['key']) }}
+                    {{ $item['label'] ?? ucfirst($item['key']) }}
                 </a>
             @endif
         @endforeach

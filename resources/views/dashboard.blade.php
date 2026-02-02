@@ -173,8 +173,6 @@
 
         .status-badge {
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
             font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;

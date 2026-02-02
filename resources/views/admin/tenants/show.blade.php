@@ -4,7 +4,7 @@
 
 @section('content')
     <div style="margin-bottom: 20px;">
-        <a href="{{ route('admin.tenants.index') }}" class="btn" style="background: #e5e7eb; color: #333; padding: 8px 16px;">← Retour</a>
+        <a href="{{ route('admin.tenants.index') }}" class="btn" style="background: #e5e7eb; color: #333; padding: 8px 16px;">RETOUR</a>
     </div>
 
     <div class="card">
@@ -87,13 +87,13 @@
                             <td>{{ $user->name }}</td>
                             <td>{{ $user->email }}</td>
                             <td>
-                                <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background: {{ $user->role === 'admin' ? 'rgba(102, 126, 234, 0.1)' : 'rgba(156, 163, 175, 0.1)' }}; color: {{ $user->role === 'admin' ? 'var(--primary-color)' : '#666' }};">
-                                    {{ ucfirst($user->role) }}
+                                <span style="font-size: 12px; font-weight: 600; color: {{ $user->role === 'admin' ? 'var(--primary-color)' : '#666' }};">
+                                    {{ strtoupper($user->role) }}
                                 </span>
                             </td>
                             <td>
-                                <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background: {{ $user->status === 'active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }}; color: {{ $user->status === 'active' ? '#10b981' : '#ef4444' }};">
-                                    {{ ucfirst($user->status) }}
+                                <span style="font-size: 12px; font-weight: 600; color: {{ $user->status === 'active' ? '#10b981' : '#ef4444' }};">
+                                    {{ strtoupper($user->status) }}
                                 </span>
                             </td>
                             <td>{{ \Carbon\Carbon::parse($user->created_at)->format('d/m/Y') }}</td>

@@ -217,7 +217,7 @@
                 @foreach($subdomains as $subdomain)
                     <div class="subdomain-item">
                         <div class="subdomain-header">
-                            <div class="subdomain-name">{{ $subdomain['hospital_name'] }}</div>
+                            <div class="subdomain-name">{{ $subdomain['subdomain'] }}</div>
                             @if($subdomain['user_role'])
                                 <span class="subdomain-badge {{ $subdomain['user_role'] }}">
                                     {{ ucfirst($subdomain['user_role']) }}
@@ -225,7 +225,7 @@
                             @endif
                         </div>
                         <div class="subdomain-info">
-                            Sous-domaine : <strong>{{ $subdomain['subdomain'] }}</strong>
+                            Organisation : <strong>{{ $subdomain['organization_name'] }}</strong>
                         </div>
                         <form method="POST" action="{{ route('root.login.select') }}" style="margin: 0;">
                             @csrf

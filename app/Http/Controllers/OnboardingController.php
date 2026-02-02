@@ -297,6 +297,39 @@ class OnboardingController extends Controller
         if (!$this->activationService->validateToken($token)) {
             $activation = $this->activationService->getActivationByToken($token);
             
+            // Si le compte est déjà activé, rediriger gracieusement vers le dashboard
+            if ($activation && $activation->isActivated()) {
+                Log::info('Tentative d\'accès à un lien déjà activé, redirection vers dashboard', [
+                    'email' => $activation->email,
+                    'subdomain' => $activation->subdomain
+                ]);
+
+                // Créer un token temporaire pour l'authentification automatique sur le sous-domaine
+                $autoLoginToken = \Illuminate\Support\Str::random(64);
+                
+                // Stocker le token dans la base de données principale
+                \Illuminate\Support\Facades\DB::connection('mysql')->table('auto_login_tokens')->insert([
+                    'token' => $autoLoginToken,
+                    'user_id' => $activation->user_id ?? 1,
+                    'subdomain' => $activation->subdomain,
+                    'database_name' => $activation->database_name,
+                    'expires_at' => now()->addMinutes(30),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                // Construire l'URL du dashboard
+                if (config('app.env') === 'local') {
+                    $port = parse_url(config('app.url', 'http://localhost:8000'), PHP_URL_PORT) ?? '8000';
+                    $dashboardUrl = "http://{$activation->subdomain}.localhost:{$port}/dashboard?auto_login_token={$autoLoginToken}";
+                } else {
+                    $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+                    $dashboardUrl = "https://{$activation->subdomain}.{$baseDomain}/dashboard?auto_login_token={$autoLoginToken}";
+                }
+
+                return redirect()->away($dashboardUrl);
+            }
+
             if ($activation && $activation->isExpired()) {
                 return view('onboarding.activation-expired');
             }
@@ -307,9 +340,14 @@ class OnboardingController extends Controller
             return view('onboarding.activation-invalid');
         }
 
+        // Si le token est valide, récupérer l'activation pour afficher le formulaire
         $activation = $this->activationService->getActivationByToken($token);
         
+        // Si pour une raison quelconque l'activation n'est pas trouvée malgré un token valide
         if (!$activation) {
+            Log::warning('Activation non trouvée pour un token valide', [
+                'token_preview' => substr($token, 0, 10) . '...',
+            ]);
             return view('onboarding.activation-invalid');
         }
         
@@ -575,7 +613,7 @@ class OnboardingController extends Controller
             // Forcer la sauvegarde de la session avant redirection
             Session::save();
             
-            return redirect()->away($dashboardUrl)->with('success', 'Connexion réussie ! Bienvenue sur votre espace Akasi Group.');
+            return redirect()->away($dashboardUrl)->with('success', 'Votre compte a été activé avec succès ! Bienvenue sur votre espace Akasi Group.');
             
         } catch (\Exception $e) {
             Log::error('Erreur lors de la connexion automatique: ' . $e->getMessage());

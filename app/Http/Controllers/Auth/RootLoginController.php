@@ -68,13 +68,9 @@ class RootLoginController extends Controller
             ])->withInput();
         }
         
-        // Stocker les résultats dans la session
-        Session::put('root_login_email', $email);
-        Session::put('root_login_subdomains', $subdomains);
-        
         Log::info("Sous-domaines trouvés pour {$email}: " . count($subdomains));
         
-        return redirect()->route('root.login.subdomains');
+        return redirect()->route('root.login.subdomains', ['email' => $email]);
     }
 
     /**
@@ -82,12 +78,26 @@ class RootLoginController extends Controller
      */
     public function showSubdomains(Request $request)
     {
-        $email = Session::get('root_login_email');
+        $email = $request->query('email') ?? Session::get('root_login_email');
         $subdomains = Session::get('root_login_subdomains');
         
+        // Si la session est vide but on a l'email, re-récupérer les sous-domaines
+        if (!$subdomains && $email) {
+            Log::info("Session vide sur root-subdomains, recalcul pour {$email}");
+            $subdomains = $this->tenantService->findSubdomainsByEmail($email);
+            if (!empty($subdomains)) {
+                Session::put('root_login_email', $email);
+                Session::put('root_login_subdomains', $subdomains);
+            }
+        }
+        
         if (!$email || !$subdomains || empty($subdomains)) {
+            Log::warning("Échec de récupération des sous-domaines pour l'affichage", [
+                'has_email' => !empty($email),
+                'has_subdomains' => !empty($subdomains)
+            ]);
             return redirect()->route('root.login')->withErrors([
-                'email' => 'Session expirée. Veuillez réessayer.',
+                'email' => 'Session expirée ou email invalide. Veuillez réessayer.',
             ]);
         }
         
@@ -107,8 +117,13 @@ class RootLoginController extends Controller
         ]);
 
         $subdomain = $request->input('subdomain');
-        $email = Session::get('root_login_email');
+        $email = $request->query('email') ?? Session::get('root_login_email');
         $subdomains = Session::get('root_login_subdomains');
+        
+        // Sécurité supplémentaire: si toujours pas de subdomains, re-récupérer
+        if (!$subdomains && $email) {
+            $subdomains = $this->tenantService->findSubdomainsByEmail($email);
+        }
         
         // Vérifier que le sous-domaine est valide et dans la liste
         if (!$subdomains || !is_array($subdomains)) {

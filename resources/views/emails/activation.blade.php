@@ -169,6 +169,10 @@
                 </div>
                 
                 <p class="footer-text">
+                    Ce lien est valable pendant {{ $expiresInDays }} jours. Si vous ne l'utilisez pas dans ce délai, vous devrez demander un nouveau lien.
+                </p>
+                
+                <p class="footer-text">
                     Ignorez ce message si vous ne l'avez pas demandé.
                 </p>
             </div>

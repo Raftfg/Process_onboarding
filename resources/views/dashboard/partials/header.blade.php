@@ -1,18 +1,13 @@
 <div class="header">
-    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">☰</button>
+    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu" style="padding: 5px 10px; font-weight: bold; background: #eee; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; margin-right: 15px;">MENU</button>
     <div class="header-left">
         <div class="search-box">
             <input type="text" id="global-search" placeholder="Rechercher..." autocomplete="off">
-            <i>🔍</i>
         </div>
     </div>
     
     <div class="header-right">
         <div class="notification-icon" onclick="toggleNotifications()">
-            <i style="font-size: 20px;">🔔</i>
-            @if(isset($unreadCount) && $unreadCount > 0)
-                <span class="notification-badge">{{ $unreadCount }}</span>
-            @endif
         </div>
         
         <div class="profile-dropdown">
@@ -21,7 +16,6 @@
                     {{ strtoupper(substr(Auth::user()->name ?? Auth::user()->email ?? 'A', 0, 1)) }}
                 </div>
                 <span>{{ Auth::user()->name ?? 'Utilisateur' }}</span>
-                <i>▼</i>
             </div>
             
             @php
@@ -34,12 +28,12 @@
             @endphp
             <div id="profile-menu" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 10px; background: white; border-radius: 8px; box-shadow: var(--shadow-lg); min-width: 200px; z-index: 1000;">
                 <a href="{{ $settingsUrl }}" style="display: block; padding: 12px 20px; color: var(--text-color); text-decoration: none; border-bottom: 1px solid var(--border-color);">
-                    ⚙️ Paramètres
+                    Paramètres
                 </a>
                 <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
                     @csrf
                     <button type="submit" style="width: 100%; text-align: left; padding: 12px 20px; background: none; border: none; color: #ef4444; cursor: pointer;">
-                        🚪 Déconnexion
+                        Déconnexion
                     </button>
                 </form>
             </div>

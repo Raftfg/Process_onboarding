@@ -76,7 +76,7 @@
             <div style="margin-bottom: 15px;">
                 <img src="{{ $logoUrl }}" alt="Logo" id="logo-preview" style="max-width: 200px; max-height: 100px; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; display: block;" onerror="this.style.display='none'; document.getElementById('logo-error').style.display='block';">
                 <div id="logo-error" style="display: none; color: #dc2626; font-size: 14px; margin-top: 10px; padding: 10px; background: #fee2e2; border-radius: 8px;">
-                    ⚠️ Le logo ne peut pas être chargé.<br>
+                    Le logo ne peut pas être chargé.<br>
                     Vérifiez que le fichier existe et que le lien symbolique storage est configuré.
                 </div>
             </div>

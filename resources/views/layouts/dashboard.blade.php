@@ -6,6 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') - Akasi Group</title>
     
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         :root {
             --primary-color: {{ $tenantCssVariables['--primary-color'] ?? '#00286f' }};
@@ -296,16 +298,6 @@
             overflow: hidden;
         }
 
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: var(--primary-color);
-        }
-
         .stat-card-header {
             display: flex;
             justify-content: space-between;
@@ -496,17 +488,7 @@
             @include('dashboard.partials.header')
             
             <div class="content-area">
-                @if(session('success'))
-                    <div class="alert alert-success" style="background: #d1fae5; color: #065f46; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px;">
-                        {{ session('success') }}
-                    </div>
-                @endif
-
-                @if(session('error'))
-                    <div class="alert alert-error" style="background: #fee2e2; color: #991b1b; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px;">
-                        {{ session('error') }}
-                    </div>
-                @endif
+                {{-- Alertes statiques supprimées au profit de SweetAlert2 --}}
 
                 @yield('content')
             </div>
@@ -696,6 +678,30 @@
                     }
                 });
             });
+        });
+    </script>
+    
+    <script>
+        $(document).ready(function() {
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Succès',
+                    text: "{{ session('success') }}",
+                    confirmButtonColor: '#00286f',
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            @endif
+
+            @if(session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erreur',
+                    text: "{{ session('error') }}",
+                    confirmButtonColor: '#00286f'
+                });
+            @endif
         });
     </script>
     

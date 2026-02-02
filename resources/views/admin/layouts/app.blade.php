@@ -254,15 +254,15 @@
             
             <nav class="sidebar-nav">
                 <a href="{{ route('admin.dashboard') }}" class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                    <i>📊</i> Dashboard
+                    Dashboard
                 </a>
                 
                 <a href="{{ route('admin.tenants.index') }}" class="nav-item {{ request()->routeIs('admin.tenants.*') ? 'active' : '' }}">
-                    <i>🏥</i> Tenants
+                    Tenants
                 </a>
                 
                 <a href="{{ route('admin.api-keys.index') }}" class="nav-item {{ request()->routeIs('admin.api-keys.*') ? 'active' : '' }}">
-                    <i>🔑</i> Clés API
+                    Clés API
                 </a>
             </nav>
             
@@ -270,7 +270,7 @@
                 <form method="POST" action="{{ route('admin.logout') }}">
                     @csrf
                     <button type="submit" class="nav-item" style="width: 100%; text-align: left; background: rgba(255, 255, 255, 0.1); border: none; cursor: pointer;">
-                        <i>🚪</i> Déconnexion
+                        Déconnexion
                     </button>
                 </form>
             </div>
