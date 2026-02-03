@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::create('test_client_tenants', function (Blueprint $table) {
             $table->id();
+            $table->string('organization_name');
+            $table->string('admin_email');
+            $table->string('status')->default('pending'); // pending, active
+            $table->string('database_name')->nullable();
+            $table->string('domain_url')->nullable();
             $table->timestamps();
         });
     }

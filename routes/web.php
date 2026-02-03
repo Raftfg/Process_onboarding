@@ -196,3 +196,10 @@ Route::prefix('admin')->group(function () {
         Route::delete('/api-keys/{id}', [App\Http\Controllers\Admin\ApiKeyController::class, 'destroy'])->name('admin.api-keys.destroy');
     });
 });
+
+// Routes Module de Test (Restauration)
+Route::middleware(['web'])->group(function () {
+    Route::get('/module/test', [App\Http\Controllers\TestModuleController::class, 'index'])->name('module.test.index');
+    Route::post('/module/test/trigger', [App\Http\Controllers\TestModuleController::class, 'trigger'])->name('module.test.trigger');
+    Route::post('/module/test/callback', [App\Http\Controllers\TestModuleController::class, 'callback'])->name('module.test.callback');
+});

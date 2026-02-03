@@ -5,11 +5,13 @@ Ce microservice est une solution d'onboarding **SaaS Multi-tenant** robuste et r
 ## 🚀 Fonctionnalités Clés
 
 - **Multi-tenancy Dynamique** : Isolation totale via des bases de données séparées.
+- **Support Multi-App (Secteur)** : Plusieurs applications peuvent utiliser l'API simultanément avec isolation des noms d'organisation par `X-App-Name`.
 - **Gestion de Sous-domaines** : Chaque tenant accède à son propre espace via `client.votre-domaine.com`.
 - **Flux d'Onboarding Complet** : 
   - Formulaire d'inscription avec validation reCAPTCHA.
   - Système d'activation par email sécurisé (tokens à usage unique).
   - Provisioning automatique de la base de données et des tables nécessaires.
+- **Onboarding Externe & Migrations** : Capacité à injecter des migrations SQL personnalisées lors de la création d'un tenant via l'API.
 - **Tableau de Bord Administrateur (Super Admin)** : Pour gérer les tenants, surveiller l'activité et générer des clés API.
 - **API Publique** : Permet l'intégration de l'onboarding dans d'autres applications.
 - **Système de Webhooks** : Notifications en temps réel (avec signature HMAC) lors des événements d'onboarding.
@@ -70,8 +72,8 @@ Toutes les requêtes API doivent inclure le header :
 
 | Méthode | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/api/onboarding/create` | Crée un nouvel onboarding |
 | `GET` | `/api/onboarding/status/{subdomain}` | Récupère le statut d'un tenant |
+| `POST` | `/api/v1/onboarding/external` | Onboarding via App externe (Multi-App) |
 | `POST` | `/api/webhooks/register` | Enregistre une URL de webhook |
 
 ### Exemple de création d'onboarding

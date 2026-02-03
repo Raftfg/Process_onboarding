@@ -85,27 +85,32 @@ Vérifie l'état d'avancement d'un tenant.
 *Statuts possibles : `pending`, `processing`, `pending_activation`, `completed`, `failed`.*
 
 ### 3. Onboarding Externe (Intégration Secteur)
-Endpoint spécialisé pour l'onboarding depuis une application tierce (ex: SIH, logiciel externe), permettant de passer des scripts SQL de migration personnalisés.
+Endpoint spécialisé pour l'onboarding depuis une application tierce (ex: SIH, logiciel externe). Ce point de terminaison permet de passer des scripts SQL de migration personnalisés pour préparer l'environnement du nouveau tenant.
 
 - **URL** : `/api/v1/onboarding/external`
 - **Méthode** : `POST`
-- **Headers Requis** : `X-App-Name`
+- **Headers Requis** : 
+  - `X-API-Key` : Votre clé API.
+  - `X-App-Name` : Identifiant unique de votre application (ex: `Secteur-Sante-v1`).
 - **Corps de la requête** :
+
+> [!IMPORTANT]
+> **Isolation par Application** : Le nom de l'organisation est unique **par application**. Une organisation nommée "Clinique A" peut exister pour l'application "App-1" et pour "App-2" sans conflit. En revanche, "App-1" ne peut pas créer deux fois la même organisation.
 
 ```json
 {
-  "email": "manualverification@test.com",
-  "organization_name": "Manual Verif",
-  "callback_url": "https://votre-app.com/callback",
+  "email": "admin@secteur-sante.com",
+  "organization_name": "Clinique Du Lac",
+  "callback_url": "https://secteur-sante.com/api/tenants/confirm",
+  "metadata": {
+    "external_id": "SIH-123456"
+  },
   "migrations": [
     {
-      "filename": "2026_02_02_custom_table.sql",
-      "content": "CREATE TABLE custom_settings (id INT...);"
+      "filename": "2026_02_03_create_patients_table.php",
+      "content": "<?php\nuse Illuminate\\Database\\Migrations\\Migration;\nuse Illuminate\\Database\\Schema\\Blueprint;\nuse Illuminate\\Support\Facades\\Schema;\n\nreturn new class extends Migration {\n    public function up() {\n        Schema::create('specific_patients', function (Blueprint $table) {\n            $table->id();\n            $table->string('name');\n            $table->timestamps();\n        });\n    }\n};"
     }
-  ],
-  "metadata": {
-    "module": "pharmacy"
-  }
+  ]
 }
 ```
 
@@ -115,9 +120,28 @@ Endpoint spécialisé pour l'onboarding depuis une application tierce (ex: SIH, 
   "success": true,
   "message": "Onboarding externe initié avec succès",
   "result": {
-    "subdomain": "manual-verif",
+    "subdomain": "clinique-du-lac",
     "activation_token": "...",
-    "url": "..."
+    "url": "http://clinique-du-lac.localhost:8000"
+  }
+}
+```
+
+#### Callback de Confirmation
+Si un `callback_url` est fourni, le microservice envoie une requête `POST` à cette URL une fois que le tenant est provisionné.
+
+**Payload du Callback** :
+```json
+{
+  "success": true,
+  "subdomain": "clinique-du-lac",
+  "database": "tenant_clinique_du_lac",
+  "url": "http://clinique-du-lac.localhost:8000",
+  "email": "admin@secteur-sante.com",
+  "organization_name": "Clinique Du Lac",
+  "activation_token": "...",
+  "metadata": {
+    "external_id": "SIH-123456"
   }
 }
 ```

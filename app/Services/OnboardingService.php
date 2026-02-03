@@ -700,6 +700,12 @@ class OnboardingService
     protected function sendCallback(string $url, array $data): void
     {
         try {
+            // Éviter le deadlock en local si l'URL pointe vers le même serveur (single-threaded)
+            if (app()->environment('local') && (str_contains($url, 'localhost') || str_contains($url, '127.0.0.1'))) {
+                Log::info("[OnboardingService] Callback passÃ©e en local pour Ã©viter le deadlock: {$url}");
+                return;
+            }
+
             Log::info("Envoi du callback vers {$url}");
             
             Http::timeout(10)
@@ -708,7 +714,7 @@ class OnboardingService
                 
         } catch (\Exception $e) {
             Log::warning("Echec de l'envoi du callback: " . $e->getMessage());
-            // On ne throw PAS l'exception ici car le tenant est créé, c'est juste la notif qui a échoué.
+            // On ne throw PAS l'exception ici car le tenant est crÃ©Ã©, c'est juste la notif qui a Ã©chouÃ©.
         }
     }
 }

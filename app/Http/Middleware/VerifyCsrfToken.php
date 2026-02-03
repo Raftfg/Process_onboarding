@@ -25,6 +25,7 @@ class VerifyCsrfToken extends Middleware
         'root-login/*',
         'step1',
         'step2',
+        'module/test/*',
     ];
     
     /**
