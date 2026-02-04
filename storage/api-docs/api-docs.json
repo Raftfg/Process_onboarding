@@ -1,0 +1,465 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Akasi Onboarding API",
+        "description": "API de gestion de l'onboarding pour les applications du groupe Akasi. Cette API permet de provisionner des tenants, de gérer des webhooks et de suivre l'état de déploiement.",
+        "contact": {
+            "email": "tech@akasi-group.com"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000",
+            "description": "Serveur de Développement Local"
+        }
+    ],
+    "paths": {
+        "/api/v1/onboarding/external": {
+            "post": {
+                "tags": [
+                    "Onboarding Externe"
+                ],
+                "summary": "Onboarding externe depuis une application tierce",
+                "description": "Traite l'onboarding de manière asynchrone (nouveau flux)",
+                "operationId": "0ddb23845d37a35d3a2ab137a4a887fd",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "admin@secteur-sante.com"
+                                    },
+                                    "organization_name": {
+                                        "type": "string",
+                                        "example": "Clinique du Lac"
+                                    },
+                                    "callback_url": {
+                                        "type": "string",
+                                        "format": "url",
+                                        "example": "https://votre-app.com/callback"
+                                    },
+                                    "migrations": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "filename": {
+                                                    "type": "string",
+                                                    "example": "create_patients_table.php"
+                                                },
+                                                "content": {
+                                                    "type": "string",
+                                                    "example": "<?php ... content ... ?>"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "metadata": {
+                                        "type": "object",
+                                        "example": {
+                                            "external_id": "SIH-123456"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Onboarding externe initié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Onboarding externe initié avec succès"
+                                        },
+                                        "result": {
+                                            "properties": {
+                                                "subdomain": {
+                                                    "type": "string",
+                                                    "example": "clinique-du-lac"
+                                                },
+                                                "activation_token": {
+                                                    "type": "string",
+                                                    "example": "act_123456..."
+                                                },
+                                                "url": {
+                                                    "type": "string",
+                                                    "example": "http://clinique-du-lac.localhost:8000"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Données de validation invalides"
+                    },
+                    "500": {
+                        "description": "Erreur lors du traitement"
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKey": []
+                    },
+                    {
+                        "AppName": []
+                    }
+                ]
+            }
+        },
+        "/api/onboarding/create": {
+            "post": {
+                "tags": [
+                    "Onboarding Public"
+                ],
+                "summary": "Créer un onboarding via API publique",
+                "description": "Créer un onboarding via API publique\n\nPOST /api/onboarding/create",
+                "operationId": "1ff2810d8636608f10e9a2d50ea22958",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "organization": {
+                                        "$ref": "#/components/schemas/Organization"
+                                    },
+                                    "admin": {
+                                        "$ref": "#/components/schemas/Admin"
+                                    },
+                                    "options": {
+                                        "properties": {
+                                            "send_welcome_email": {
+                                                "type": "boolean",
+                                                "example": true
+                                            },
+                                            "auto_login": {
+                                                "type": "boolean",
+                                                "example": false
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "metadata": {
+                                        "type": "object",
+                                        "example": {
+                                            "external_id": "CRM-789"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Onboarding créé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "subdomain": {
+                                                    "type": "string",
+                                                    "example": "mon-entreprise"
+                                                },
+                                                "database_name": {
+                                                    "type": "string",
+                                                    "example": "tenant_mon_entreprise"
+                                                },
+                                                "url": {
+                                                    "type": "string",
+                                                    "example": "http://mon-entreprise.localhost:8000"
+                                                },
+                                                "admin_email": {
+                                                    "type": "string",
+                                                    "example": "admin@exemple.com"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Erreur de validation"
+                    },
+                    "401": {
+                        "description": "Non autorisé (Clé API ou App Name invalide)"
+                    },
+                    "500": {
+                        "description": "Erreur serveur"
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKey": []
+                    },
+                    {
+                        "AppName": []
+                    }
+                ]
+            }
+        },
+        "/api/onboarding/status/{subdomain}": {
+            "get": {
+                "tags": [
+                    "Onboarding Public"
+                ],
+                "summary": "Obtenir le statut d'un onboarding",
+                "description": "Obtenir le statut d'un onboarding\n\nGET /api/onboarding/status/{subdomain}",
+                "operationId": "e91c196c697a1dbf9bf0b04ef145286b",
+                "parameters": [
+                    {
+                        "name": "subdomain",
+                        "in": "path",
+                        "description": "Le sous-domaine du tenant",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Statut récupéré",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "subdomain": {
+                                                    "type": "string",
+                                                    "example": "mon-entreprise"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "completed"
+                                                },
+                                                "database_name": {
+                                                    "type": "string",
+                                                    "example": "tenant_mon_entreprise"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Onboarding non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKey": []
+                    },
+                    {
+                        "AppName": []
+                    }
+                ]
+            }
+        },
+        "/api/webhooks/register": {
+            "post": {
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Enregistrer un nouveau webhook",
+                "description": "Enregistrer un nouveau webhook\n\nPOST /api/webhooks/register",
+                "operationId": "3327efb80281af7bb8a3e629b029cf47",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "url": {
+                                        "type": "string",
+                                        "format": "url",
+                                        "example": "https://votre-app.com/webhooks"
+                                    },
+                                    "events": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "enum": [
+                                                "onboarding.completed",
+                                                "onboarding.failed",
+                                                "test"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Webhook enregistré",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "url": {
+                                                    "type": "string"
+                                                },
+                                                "secret": {
+                                                    "description": "Secret pour vérifier les signatures HMAC",
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKey": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Organization": {
+                "required": [
+                    "name",
+                    "email"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "Mon Entreprise"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "admin@exemple.com"
+                    },
+                    "phone": {
+                        "type": "string",
+                        "example": "+241 01 23 45 67"
+                    },
+                    "address": {
+                        "type": "string",
+                        "example": "Libreville, Gabon"
+                    }
+                },
+                "type": "object"
+            },
+            "Admin": {
+                "required": [
+                    "first_name",
+                    "last_name",
+                    "email"
+                ],
+                "properties": {
+                    "first_name": {
+                        "type": "string",
+                        "example": "Jean"
+                    },
+                    "last_name": {
+                        "type": "string",
+                        "example": "Dupont"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "j.dupont@exemple.com"
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "ApiKey": {
+                "type": "apiKey",
+                "description": "Clé API secrète fournie par Akasi Group",
+                "name": "X-API-Key",
+                "in": "header"
+            },
+            "AppName": {
+                "type": "apiKey",
+                "description": "Identifiant unique de votre application (ex: Ejustice)",
+                "name": "X-App-Name",
+                "in": "header"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Onboarding Externe",
+            "description": "Onboarding Externe"
+        },
+        {
+            "name": "Onboarding Public",
+            "description": "Onboarding Public"
+        },
+        {
+            "name": "Webhooks",
+            "description": "Webhooks"
+        }
+    ]
+}

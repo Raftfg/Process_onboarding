@@ -7,6 +7,7 @@ use App\Services\WebhookService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use OpenApi\Attributes as OA;
 
 class WebhookController extends Controller
 {
@@ -16,6 +17,46 @@ class WebhookController extends Controller
     {
         $this->webhookService = $webhookService;
     }
+
+    #[OA\Post(
+        path: "/api/webhooks/register",
+        summary: "Enregistrer un nouveau webhook",
+        tags: ["Webhooks"],
+        security: [["ApiKey" => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "url", type: "string", format: "url", example: "https://votre-app.com/webhooks"),
+                    new OA\Property(
+                        property: "events",
+                        type: "array",
+                        items: new OA\Items(type: "string", enum: ["onboarding.completed", "onboarding.failed", "test"])
+                    )
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: "Webhook enregistré",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(
+                            property: "data",
+                            properties: [
+                                new OA\Property(property: "id", type: "integer"),
+                                new OA\Property(property: "url", type: "string"),
+                                new OA\Property(property: "secret", type: "string", description: "Secret pour vérifier les signatures HMAC")
+                            ],
+                            type: "object"
+                        )
+                    ]
+                )
+            )
+        ]
+    )]
 
     /**
      * Enregistrer un nouveau webhook

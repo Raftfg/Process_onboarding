@@ -70,6 +70,13 @@ Toutes les requêtes API doivent inclure les headers :
 
 *(Générez vos clés et configurez vos apps dans le Dashboard Super Admin)*
 
+### 📖 Documentation Interactive (Swagger)
+Une documentation interactive complète et testable est disponible :
+- **Adresse** : `/api/documentation`
+- **Lien local** : [http://localhost:8000/api/documentation](http://localhost:8000/api/documentation)
+
+Cette interface permet de tester tous les endpoints en saisissant vos headers `X-API-Key` et `X-App-Name` via le bouton **Authorize**.
+
 ### Endpoints Principaux
 
 | Méthode | Endpoint | Description |

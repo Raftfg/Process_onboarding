@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
+use OpenApi\Attributes as OA;
+
 class OnboardingApiController extends Controller
 {
     protected $onboardingService;
@@ -27,6 +29,58 @@ class OnboardingApiController extends Controller
         $this->tenantService = $tenantService;
         $this->activationService = $activationService;
     }
+
+    #[OA\Post(
+        path: "/api/v1/onboarding/external",
+        summary: "Onboarding externe depuis une application tierce",
+        tags: ["Onboarding Externe"],
+        security: [["ApiKey" => []], ["AppName" => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "email", type: "string", format: "email", example: "admin@secteur-sante.com"),
+                    new OA\Property(property: "organization_name", type: "string", example: "Clinique du Lac"),
+                    new OA\Property(property: "callback_url", type: "string", format: "url", example: "https://votre-app.com/callback"),
+                    new OA\Property(
+                        property: "migrations",
+                        type: "array",
+                        items: new OA\Items(
+                            properties: [
+                                new OA\Property(property: "filename", type: "string", example: "create_patients_table.php"),
+                                new OA\Property(property: "content", type: "string", example: "<?php ... content ... ?>")
+                            ],
+                            type: "object"
+                        )
+                    ),
+                    new OA\Property(property: "metadata", type: "object", example: ["external_id" => "SIH-123456"])
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Onboarding externe initié",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Onboarding externe initié avec succès"),
+                        new OA\Property(
+                            property: "result",
+                            properties: [
+                                new OA\Property(property: "subdomain", type: "string", example: "clinique-du-lac"),
+                                new OA\Property(property: "activation_token", type: "string", example: "act_123456..."),
+                                new OA\Property(property: "url", type: "string", example: "http://clinique-du-lac.localhost:8000")
+                            ],
+                            type: "object"
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(response: 422, description: "Données de validation invalides"),
+            new OA\Response(response: 500, description: "Erreur lors du traitement")
+        ]
+    )]
 
     /**
      * Traite l'onboarding de manière asynchrone (nouveau flux)
