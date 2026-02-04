@@ -5,11 +5,15 @@
 @section('content')
     <div class="card">
         <h3 style="margin-bottom: 20px;">Générer une nouvelle clé</h3>
-        <form action="{{ route('admin.api-keys.store') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+        <form action="{{ route('admin.api-keys.store') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
             @csrf
             <div>
-                <label style="display: block; margin-bottom: 5px; font-size: 14px;">Nom de l'application / Client</label>
-                <input type="text" name="name" required placeholder="Ex: App Parent React" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
+                <label style="display: block; margin-bottom: 5px; font-size: 14px;">Nom (Description)</label>
+                <input type="text" name="name" required placeholder="Ex: Clé Prod - Ejustice" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-size: 14px;">Nom App (Sera vérifié)</label>
+                <input type="text" name="app_name" required placeholder="Ex: ejustice" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 5px; font-size: 14px;">Expiration (Optionnel)</label>
@@ -26,7 +30,10 @@
     @if(session('new_api_key'))
         <div class="card" style="border: 2px solid #667eea; background: #f0f4ff;">
             <h3 style="color: #4c51bf; margin-bottom: 10px;">Nouvelle Clé API Générée</h3>
-            <p style="margin-bottom: 15px;">Pour : <strong>{{ session('new_api_key_name') }}</strong></p>
+            <p style="margin-bottom: 15px;">
+                Pour : <strong>{{ session('new_api_key_name') }}</strong><br>
+                Application : <code style="background: #e0e7ff; padding: 2px 6px; border-radius: 4px;">{{ session('new_api_key_app') }}</code>
+            </p>
             <div style="background: white; padding: 15px; border-radius: 8px; border: 1px dashed #667eea; font-family: monospace; font-size: 18px; margin-bottom: 15px; word-break: break-all;">
                 {{ session('new_api_key') }}
             </div>
@@ -41,11 +48,11 @@
                 <thead>
                     <tr>
                         <th>Nom</th>
+                        <th>App ID</th>
                         <th>Préfixe</th>
                         <th>Status</th>
                         <th>Rate Limit</th>
                         <th>Expire le</th>
-                        <th>Créée le</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -53,6 +60,13 @@
                     @foreach($keys as $key)
                         <tr>
                             <td><strong>{{ $key->name }}</strong></td>
+                            <td>
+                                @if($key->app_name)
+                                    <code style="background: #edf2f7; padding: 2px 6px; border-radius: 4px;">{{ $key->app_name }}</code>
+                                @else
+                                    <span style="color: #999; font-style: italic;">Aucun</span>
+                                @endif
+                            </td>
                             <td><code>{{ $key->key_prefix }}</code></td>
                             <td>
                                 <span style="padding: 4px 10px; border-radius: 12px; font-size: 12px; background: {{ $key->is_active ? '#d1fae5' : '#fee2e2' }}; color: {{ $key->is_active ? '#065f46' : '#991b1b' }}">

@@ -12,6 +12,7 @@ class ApiKey extends Model
         'name',
         'key',
         'key_prefix',
+        'app_name', // Nom de l'application technique (ex: Ejustice)
         'is_active',
         'expires_at',
         'last_used_at',
@@ -47,6 +48,7 @@ class ApiKey extends Model
             'name' => $name,
             'key' => $hashedKey,
             'key_prefix' => $keyPrefix,
+            'app_name' => $options['app_name'] ?? null,
             'is_active' => $options['is_active'] ?? true,
             'expires_at' => $options['expires_at'] ?? null,
             'allowed_ips' => $options['allowed_ips'] ?? null,
@@ -59,6 +61,7 @@ class ApiKey extends Model
             'key' => $key, // Clé en clair (à sauvegarder immédiatement)
             'key_prefix' => $keyPrefix,
             'name' => $apiKey->name,
+            'app_name' => $apiKey->app_name,
         ];
     }
 

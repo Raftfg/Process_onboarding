@@ -26,6 +26,11 @@ Route::middleware(['api.auth'])->group(function () {
         Route::post('/test', [App\Http\Controllers\Api\WebhookController::class, 'triggerTest'])->name('api.webhooks.test');
         Route::delete('/{id}', [App\Http\Controllers\Api\WebhookController::class, 'destroy'])->name('api.webhooks.destroy');
     });
+
+    // API v1 - Onboarding externe (PROTÉGÉ par api.auth)
+    Route::prefix('v1')->group(function () {
+        Route::post('/onboarding/external', [OnboardingApiController::class, 'externalStore'])->name('api.v1.onboarding.external');
+    });
 });
 
 // API interne (utilisée par le frontend)
@@ -33,8 +38,4 @@ Route::prefix('onboarding')->middleware('web')->group(function () {
     Route::post('/complete', [OnboardingApiController::class, 'complete'])->name('api.onboarding.complete');
     Route::post('/process', [OnboardingApiController::class, 'processAsync'])->name('api.onboarding.process');
     Route::get('/status/{sessionId}', [OnboardingApiController::class, 'status'])->name('api.onboarding.status');
-});
-
-Route::prefix('v1')->group(function () {
-    Route::post('/onboarding/external', [OnboardingApiController::class, 'externalStore']);
 });

@@ -31,7 +31,7 @@ sequenceDiagram
     
     App->>API: 1. POST /api/v1/onboarding/external<br/>Headers: X-API-Key, X-App-Name<br/>Body: organization, email, migrations
     
-    API->>API: 2. Validation API Key<br/>et X-App-Name
+    API->>API: 2. Validation API Key<br/>ET correspondance X-App-Name
     
     API->>DB: 3. Créer nouvelle base<br/>"tenant_clinique_a"
     DB-->>API: Base créée
@@ -118,22 +118,25 @@ graph TB
     A2 -.->|POST avec X-App-Name| MS
     A3 -.->|POST avec X-App-Name| MS
     
+    Note over MS: Chaque requête est validée :<br/>Le X-App-Name DOIT correspondre<br/>à l'Application liée à la Clé API.
     style MS fill:#4CAF50
     style A1 fill:#2196F3
     style A2 fill:#FF9800
     style A3 fill:#9C27B0
 ```
 
-**Règles d'Isolation** :
+**Règles d'Isolation et de Sécurité** :
+
+1. **Binding Strict** : La clé API utilisée par une application est techniquement liée à celle-ci. Elle ne fonctionnera PAS si elle est utilisée avec un autre `X-App-Name`.
+2. **Unicité des Noms** : Le nom de l'organisation est unique **par application**.
 
 ✅ **AUTORISÉ** :
-- `SIH-Gabon` peut créer "Clinique A"
-- `ERP-Sante` peut AUSSI créer "Clinique A" (pas de conflit)
-- `Logiciel-Clinique` peut AUSSI créer "Clinique A" (pas de conflit)
+- `SIH-Gabon` avec la BONNE clé peut créer "Clinique A"
+- `ERP-Sante` avec la BONNE clé peut AUSSI créer "Clinique A" (pas de conflit)
 
 ❌ **INTERDIT** :
-- `SIH-Gabon` ne peut PAS créer "Clinique A" deux fois
-- `ERP-Sante` ne peut PAS créer "Clinique A" deux fois
+- Utiliser la clé de `SIH-Gabon` avec `X-App-Name: ERP-Sante` (REJETÉ - 401)
+- `SIH-Gabon` ne peut PAS créer "Clinique A" deux fois (REJETÉ - 409)
 
 **Pourquoi c'est important** :
 - Chaque application a son propre espace de noms
@@ -155,7 +158,7 @@ graph LR
     
     subgraph "Validation Microservice"
         V1{API Key<br/>valide?}
-        V2{X-App-Name<br/>présent?}
+        V2{X-App-Name<br/>correspond à<br/>la Clé?}
         V3{Organisation<br/>unique pour<br/>cette app?}
     end
     
@@ -247,8 +250,8 @@ erDiagram
 journey
     title Parcours d'Intégration d'un Nouveau Client
     section Développeur App Cliente
-      Obtenir clé API: 5: Dev
-      Lire documentation: 4: Dev
+      Obtenir clé API et App Name: 5: Dev
+      Lire documentation qui mentionne le Binding: 4: Dev
       Préparer migrations SQL: 3: Dev
       Implémenter appel API: 4: Dev
       Tester en local: 3: Dev

@@ -15,10 +15,13 @@ Votre application veut créer automatiquement un espace client (tenant) dans le 
 ### 1. Obtenir une Clé API
 Contactez l'administrateur du microservice pour obtenir :
 - Une **clé API** (`X-API-Key`)
-- Un **identifiant d'application** unique (`X-App-Name`)
+- Votre **Nom d'Application** officiel (`X-App-Name`) auquel la clé est liée.
+
+> [!IMPORTANT]
+> La clé API ne fonctionnera **QUE** si elle est utilisée avec le bon `X-App-Name`.
 
 **Exemple** :
-- `X-API-Key`: `sk_live_abc123def456...`
+- `X-API-Key`: `ak_abc123...`
 - `X-App-Name`: `Secteur-Sante-v1`
 
 ### 2. Préparer votre Endpoint de Callback (Optionnel)
@@ -36,7 +39,7 @@ POST https://votre-app.com/api/tenants/confirm
 POST /api/v1/onboarding/external HTTP/1.1
 Host: onboarding.akasigroup.com
 Content-Type: application/json
-X-API-Key: sk_live_abc123def456...
+X-API-Key: ak_abc123...
 X-App-Name: Secteur-Sante-v1
 ```
 

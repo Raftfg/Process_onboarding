@@ -64,9 +64,11 @@ Assurez-vous que votre serveur web ou votre DNS redirige `*.votre-domaine.com` v
 ## 🔌 API Publique
 
 ### Authentification API
-Toutes les requêtes API doivent inclure le header :
-`X-API-Key: votre_cle_api`
-*(Générez vos clés dans le Dashboard Super Admin)*
+Toutes les requêtes API doivent inclure les headers :
+- `X-API-Key: votre_cle_api`
+- `X-App-Name: nom_de_votre_app` (Requis pour l'isolation)
+
+*(Générez vos clés et configurez vos apps dans le Dashboard Super Admin)*
 
 ### Endpoints Principaux
 

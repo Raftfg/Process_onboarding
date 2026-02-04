@@ -8,9 +8,9 @@ Toutes les requêtes API (sauf spécifié autrement) doivent inclure les headers
 
 | Header | Valeur | Requis |
 | :--- | :--- | :--- |
-| `X-API-Key` | Votre clé secrète | Oui (toutes) |
-| `X-App-Name` | Nom de l'application source | Oui (onboarding externe) |
-| `Authorization` | `Bearer <votre_cle_api>` | Alternative à `X-API-Key` |
+| `X-API-Key` | Votre clé secrète | **OUI** (toutes) |
+| `X-App-Name` | Nom de l'application (ex: `Ejustice`) | **OUI** (Toutes requêtes protégées) |
+| `Authorization` | `Bearer <votre_cle_api>` | Déprécié (préférez `X-API-Key`) |
 
 Les clés API sont générées et gérées depuis le **Dashboard Super Admin** (`/admin/api-keys`).
 
@@ -95,7 +95,11 @@ Endpoint spécialisé pour l'onboarding depuis une application tierce (ex: SIH, 
 - **Corps de la requête** :
 
 > [!IMPORTANT]
-> **Isolation par Application** : Le nom de l'organisation est unique **par application**. Une organisation nommée "Clinique A" peut exister pour l'application "App-1" et pour "App-2" sans conflit. En revanche, "App-1" ne peut pas créer deux fois la même organisation.
+> **Isolation par Application** : Chaque Clé API est liée à un Nom d'Application unique (configuré lors de sa création).
+> - Vous **DEVEZ** envoyer le header `X-App-Name` correspondant exactement au nom configuré pour votre clé.
+> - Si le header est manquant ou ne correspond pas, l'accès sera **REFUSÉ** (401 Unauthorized), même si la clé est valide.
+> 
+> Le nom de l'organisation est unique **par application**. Une organisation nommée "Clinique A" peut exister pour l'application "App-1" et pour "App-2" sans conflit. En revanche, "App-1" ne peut pas créer deux fois la même organisation.
 
 ```json
 {

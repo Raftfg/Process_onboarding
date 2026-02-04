@@ -15,10 +15,13 @@ Votre application veut créer automatiquement un espace client (tenant) dans le 
 ### 1. Obtenir une Clé API
 Contactez l'administrateur du microservice pour obtenir :
 - Une **clé API** (`X-API-Key`)
-- Un **identifiant d'application** unique (`X-App-Name`)
+- Votre **Nom d'Application** officiel (`X-App-Name`) auquel la clé est liée.
+
+> [!IMPORTANT]
+> La clé API ne fonctionnera **QUE** si elle est utilisée avec le bon `X-App-Name`.
 
 **Exemple** :
-- `X-API-Key`: `sk_live_abc123def456...`
+- `X-API-Key`: `ak_abc123...`
 - `X-App-Name`: `Secteur-Sante-v1`
 
 ### 2. Préparer votre Endpoint de Callback (Optionnel)
@@ -36,7 +39,7 @@ POST https://votre-app.com/api/tenants/confirm
 POST /api/v1/onboarding/external HTTP/1.1
 Host: onboarding.akasigroup.com
 Content-Type: application/json
-X-API-Key: sk_live_abc123def456...
+X-API-Key: ak_abc123...
 X-App-Name: Secteur-Sante-v1
 ```
 
@@ -101,7 +104,7 @@ $client = new Client();
 
 $response = $client->post('https://onboarding.akasigroup.com/api/v1/onboarding/external', [
     'headers' => [
-        'X-API-Key' => 'sk_live_abc123def456...',
+        'X-API-Key' => 'ak_abc123...',
         'X-App-Name' => 'Secteur-Sante-v1',
         'Content-Type' => 'application/json',
     ],
@@ -146,7 +149,7 @@ const response = await axios.post(
   },
   {
     headers: {
-      'X-API-Key': 'sk_live_abc123def456...',
+      'X-API-Key': 'ak_abc123...',
       'X-App-Name': 'Secteur-Sante-v1',
       'Content-Type': 'application/json',
     },
@@ -308,7 +311,7 @@ $hospital->update([
 ### Vérifier que votre requête est correcte
 ```bash
 curl -X POST https://onboarding.akasigroup.com/api/v1/onboarding/external \
-  -H "X-API-Key: sk_live_abc123..." \
+  -H "X-API-Key: ak_abc123..." \
   -H "X-App-Name: Secteur-Sante-v1" \
   -H "Content-Type: application/json" \
   -d '{

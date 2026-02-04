@@ -25,12 +25,14 @@ class ApiKeyController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'app_name' => 'required|string|max:50|alpha_dash', // Nom technique unique par app
             'expires_at' => 'nullable|date|after:now',
             'rate_limit' => 'nullable|integer|min:1',
         ]);
 
         try {
             $result = ApiKey::generate($request->name, [
+                'app_name' => $request->app_name,
                 'expires_at' => $request->expires_at,
                 'rate_limit' => $request->rate_limit ?? 100,
             ]);
@@ -38,7 +40,8 @@ class ApiKeyController extends Controller
             return redirect()->route('admin.api-keys.index')
                 ->with('success', 'Clé API générée avec succès !')
                 ->with('new_api_key', $result['key'])
-                ->with('new_api_key_name', $result['name']);
+                ->with('new_api_key_name', $result['name'])
+                ->with('new_api_key_app', $result['app_name']);
         } catch (\Exception $e) {
             return back()->with('error', 'Erreur lors de la génération : ' . $e->getMessage());
         }
