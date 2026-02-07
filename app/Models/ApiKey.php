@@ -13,11 +13,13 @@ class ApiKey extends Model
         'key',
         'key_prefix',
         'app_name', // Nom de l'application technique (ex: Ejustice)
+        'application_id', // ID de l'application propriétaire (si créée via self-service)
         'is_active',
         'expires_at',
         'last_used_at',
         'allowed_ips',
         'rate_limit',
+        'api_config', // Configuration flexible de l'API
     ];
 
     protected $casts = [
@@ -25,6 +27,7 @@ class ApiKey extends Model
         'expires_at' => 'datetime',
         'last_used_at' => 'datetime',
         'allowed_ips' => 'array',
+        'api_config' => 'array',
     ];
 
     protected $hidden = [
@@ -49,10 +52,12 @@ class ApiKey extends Model
             'key' => $hashedKey,
             'key_prefix' => $keyPrefix,
             'app_name' => $options['app_name'] ?? null,
+            'application_id' => $options['application_id'] ?? null,
             'is_active' => $options['is_active'] ?? true,
             'expires_at' => $options['expires_at'] ?? null,
             'allowed_ips' => $options['allowed_ips'] ?? null,
             'rate_limit' => $options['rate_limit'] ?? 100,
+            'api_config' => $options['api_config'] ?? null,
         ]);
 
         // Retourner la clé en clair (à afficher une seule fois)
@@ -106,5 +111,88 @@ class ApiKey extends Model
         }
 
         return in_array($ip, $this->allowed_ips);
+    }
+
+    /**
+     * Retourne les règles de validation selon la configuration de l'API
+     * 
+     * @return array Règles de validation Laravel
+     */
+    public function getValidationRules(): array
+    {
+        $config = $this->api_config ?? [];
+        $rules = [];
+
+        // Règle pour organization_name selon la config
+        if ($this->shouldRequireOrganizationName()) {
+            $rules['organization_name'] = 'required|string|max:255';
+        } else {
+            $rules['organization_name'] = 'nullable|string|max:255';
+        }
+
+        // Règles personnalisées depuis la config
+        if (isset($config['custom_validation_rules']) && is_array($config['custom_validation_rules'])) {
+            $rules = array_merge($rules, $config['custom_validation_rules']);
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Vérifie si organization_name est requis selon la configuration
+     * 
+     * @return bool True si requis, false sinon (défaut: true pour rétrocompatibilité)
+     */
+    public function shouldRequireOrganizationName(): bool
+    {
+        $config = $this->api_config ?? [];
+        
+        // Par défaut, on garde le comportement actuel (requis) pour rétrocompatibilité
+        // Si la config existe et définit explicitement require_organization_name, on l'utilise
+        if (isset($config['require_organization_name'])) {
+            return (bool) $config['require_organization_name'];
+        }
+
+        // Par défaut, organization_name est requis (rétrocompatibilité)
+        return true;
+    }
+
+    /**
+     * Retourne la stratégie de génération du nom d'organisation
+     * 
+     * @return string Stratégie: 'auto', 'email', 'metadata', 'custom', ou null
+     */
+    public function getOrganizationNameGenerationStrategy(): ?string
+    {
+        $config = $this->api_config ?? [];
+        
+        return $config['organization_name_generation_strategy'] ?? 'auto';
+    }
+
+    /**
+     * Retourne le template personnalisé pour la génération du nom d'organisation
+     * 
+     * @return string|null Template (ex: "Tenant-{timestamp}") ou null
+     */
+    public function getOrganizationNameTemplate(): ?string
+    {
+        $config = $this->api_config ?? [];
+        
+        return $config['organization_name_template'] ?? null;
+    }
+
+    /**
+     * Retourne la configuration par défaut pour une nouvelle clé API
+     * 
+     * @return array Configuration par défaut
+     */
+    public static function getDefaultApiConfig(): array
+    {
+        return [
+            'require_organization_name' => true, // Rétrocompatibilité
+            'organization_name_generation_strategy' => 'auto',
+            'organization_name_template' => null,
+            'custom_validation_rules' => [],
+        ];
     }
 }

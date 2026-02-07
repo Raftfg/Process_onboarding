@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Bienvenue sur Akasi Group')
+@section('title', trans('onboarding.welcome_title', ['brand' => config('app.brand_name')]))
 
 @section('content')
 <div class="logo">
-    <h1>Akasi Group</h1>
+    <h1>{{ config('app.brand_name') }}</h1>
 </div>
 
 <div class="welcome-message">
-    <h2>Bienvenue sur Akasi Group</h2>
+    <h2>{{ trans('onboarding.welcome_title', ['brand' => config('app.brand_name')]) }}</h2>
     <p>Nous sommes ravis de vous accueillir ! Commençons par configurer votre compte.</p>
 </div>
 

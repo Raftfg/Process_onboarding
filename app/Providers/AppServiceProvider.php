@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\View;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,6 +16,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        // Partager les variables de branding avec toutes les vues
+        View::share('brandName', config('app.brand_name'));
+        View::share('brandDomain', config('app.brand_domain'));
     }
 }

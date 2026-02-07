@@ -16,18 +16,11 @@ use OpenApi\Attributes as OA;
     description: "Serveur de Développement Local"
 )]
 #[OA\SecurityScheme(
-    securityScheme: "ApiKey",
+    securityScheme: "MasterKey",
     type: "apiKey",
     in: "header",
-    name: "X-API-Key",
-    description: "Clé API secrète fournie par Akasi Group"
-)]
-#[OA\SecurityScheme(
-    securityScheme: "AppName",
-    type: "apiKey",
-    in: "header",
-    name: "X-App-Name",
-    description: "Identifiant unique de votre application (ex: Ejustice)"
+    name: "X-Master-Key",
+    description: "Master key de votre application cliente, obtenue via /api/v1/applications/register"
 )]
 class OpenApi extends Controller
 {

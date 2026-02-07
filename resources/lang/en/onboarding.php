@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'title' => 'Onboarding',
+    'welcome_title' => 'Welcome to :brand',
+    'welcome_subtitle' => 'Create your space in a few simple steps',
+    'create_space' => 'Create your space',
+    'create_space_subtitle' => 'Fill in the information below to get started',
+    'loading_title' => 'Creation in progress',
+    'loading_message' => 'Creating your :brand space...',
+    'confirmation_title' => 'Confirmation',
+    'account_activated_success' => 'Your account has been successfully activated! Welcome to your :brand space.',
+    'activation_title' => 'Activate your account',
+    'activation_subtitle' => 'Create a password to finalize your registration',
+    'activation_expired' => 'Activation link expired',
+    'activation_expired_message' => 'The activation link has expired. Please request a new link.',
+    'activation_invalid' => 'Invalid activation link',
+    'activation_invalid_message' => 'The activation link is no longer valid or has already been used.',
+    'email_required' => 'Email address is required',
+    'organization_required' => 'Organization name is required',
+    'password_required' => 'Password is required',
+    'password_min' => 'Password must be at least :min characters',
+    'password_confirmed' => 'Passwords do not match',
+    'please_fill_form' => 'Please fill out the form to continue.',
+    'error_occurred' => 'An error occurred. Please refresh the page and try again.',
+];

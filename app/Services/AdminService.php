@@ -50,12 +50,75 @@ class AdminService
             }
         }
 
+        // Statistiques d'onboarding stateless
+        $onboardingStats = $this->getOnboardingStats();
+
         return [
             'total_tenants' => $totalTenants,
             'active_tenants' => $activeTenants,
             'inactive_tenants' => $totalTenants - $activeTenants,
             'total_users' => $totalUsers,
             'total_activities' => $totalActivities,
+            'onboarding_stats' => $onboardingStats,
+        ];
+    }
+
+    /**
+     * Obtenir les statistiques d'onboarding stateless
+     */
+    public function getOnboardingStats(): array
+    {
+        $total = \App\Models\OnboardingRegistration::count();
+        $pending = \App\Models\OnboardingRegistration::where('status', 'pending')->count();
+        $activated = \App\Models\OnboardingRegistration::where('status', 'activated')->count();
+        $cancelled = \App\Models\OnboardingRegistration::where('status', 'cancelled')->count();
+
+        // Onboardings bloqués (pending > 24h)
+        $stuck = \App\Models\OnboardingRegistration::where('status', 'pending')
+            ->where('created_at', '<', now()->subHours(24))
+            ->count();
+
+        // Taux de succès
+        $successRate = $total > 0 ? round(($activated / $total) * 100, 2) : 0;
+
+        // Temps moyen de provisioning (pour les activés)
+        $avgProvisioningTime = \App\Models\OnboardingRegistration::where('status', 'activated')
+            ->whereNotNull('updated_at')
+            ->get()
+            ->map(function($onboarding) {
+                return $onboarding->created_at->diffInMinutes($onboarding->updated_at);
+            })
+            ->avg();
+
+        // Onboardings par application
+        $byApplication = \App\Models\OnboardingRegistration::select('application_id', DB::raw('count(*) as count'))
+            ->with('application')
+            ->groupBy('application_id')
+            ->get()
+            ->mapWithKeys(function($item) {
+                return [$item->application->app_name ?? 'Unknown' => $item->count];
+            })
+            ->toArray();
+
+        // Onboardings des 7 derniers jours
+        $last7Days = \App\Models\OnboardingRegistration::where('created_at', '>=', now()->subDays(7))
+            ->count();
+
+        // Onboardings des 30 derniers jours
+        $last30Days = \App\Models\OnboardingRegistration::where('created_at', '>=', now()->subDays(30))
+            ->count();
+
+        return [
+            'total' => $total,
+            'pending' => $pending,
+            'activated' => $activated,
+            'cancelled' => $cancelled,
+            'stuck' => $stuck,
+            'success_rate' => $successRate,
+            'avg_provisioning_time_minutes' => round($avgProvisioningTime ?? 0, 2),
+            'by_application' => $byApplication,
+            'last_7_days' => $last7Days,
+            'last_30_days' => $last30Days,
         ];
     }
 

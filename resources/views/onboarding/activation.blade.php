@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Activer votre compte - Akasi Group')
+@section('title', trans('onboarding.activation_title') . ' - ' . config('app.brand_name'))
 
 @push('styles')
 <style>
@@ -27,7 +27,7 @@
 
 @section('content')
 <div class="logo">
-    <h1>Akasi Group</h1>
+    <h1>{{ config('app.brand_name') }}</h1>
 </div>
 
 <div class="welcome-message">

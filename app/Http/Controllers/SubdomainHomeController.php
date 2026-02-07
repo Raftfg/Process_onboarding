@@ -46,7 +46,7 @@ class SubdomainHomeController extends Controller
             if (config('app.env') === 'local') {
                 return redirect('http://localhost:8000/');
             } else {
-                $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+                $baseDomain = config('app.brand_domain');
                 return redirect("https://{$baseDomain}/");
             }
         }

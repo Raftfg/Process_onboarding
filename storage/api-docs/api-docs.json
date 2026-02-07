@@ -15,55 +15,32 @@
         }
     ],
     "paths": {
-        "/api/v1/onboarding/external": {
+        "/api/v1/onboarding/start": {
             "post": {
                 "tags": [
-                    "Onboarding Externe"
+                    "Onboarding Stateless"
                 ],
-                "summary": "Onboarding externe depuis une application tierce",
-                "description": "Traite l'onboarding de manière asynchrone (nouveau flux)",
-                "operationId": "0ddb23845d37a35d3a2ab137a4a887fd",
+                "summary": "Démarrer un onboarding stateless",
+                "description": "Crée un enregistrement d'onboarding dans la base centrale et génère un sous-domaine.",
+                "operationId": "98832ff01ce791a7505c538049b16193",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "email"
+                                ],
                                 "properties": {
                                     "email": {
                                         "type": "string",
                                         "format": "email",
-                                        "example": "admin@secteur-sante.com"
+                                        "example": "admin@example.com"
                                     },
                                     "organization_name": {
                                         "type": "string",
-                                        "example": "Clinique du Lac"
-                                    },
-                                    "callback_url": {
-                                        "type": "string",
-                                        "format": "url",
-                                        "example": "https://votre-app.com/callback"
-                                    },
-                                    "migrations": {
-                                        "type": "array",
-                                        "items": {
-                                            "properties": {
-                                                "filename": {
-                                                    "type": "string",
-                                                    "example": "create_patients_table.php"
-                                                },
-                                                "content": {
-                                                    "type": "string",
-                                                    "example": "<?php ... content ... ?>"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "metadata": {
-                                        "type": "object",
-                                        "example": {
-                                            "external_id": "SIH-123456"
-                                        }
+                                        "example": "Clinique du Lac",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -72,8 +49,8 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "Onboarding externe initié",
+                    "201": {
+                        "description": "Onboarding créé",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -82,26 +59,25 @@
                                             "type": "boolean",
                                             "example": true
                                         },
-                                        "message": {
+                                        "uuid": {
                                             "type": "string",
-                                            "example": "Onboarding externe initié avec succès"
+                                            "format": "uuid"
                                         },
-                                        "result": {
-                                            "properties": {
-                                                "subdomain": {
-                                                    "type": "string",
-                                                    "example": "clinique-du-lac"
-                                                },
-                                                "activation_token": {
-                                                    "type": "string",
-                                                    "example": "act_123456..."
-                                                },
-                                                "url": {
-                                                    "type": "string",
-                                                    "example": "http://clinique-du-lac.localhost:8000"
-                                                }
-                                            },
-                                            "type": "object"
+                                        "subdomain": {
+                                            "type": "string",
+                                            "example": "clinique-du-lac"
+                                        },
+                                        "email": {
+                                            "type": "string",
+                                            "format": "email"
+                                        },
+                                        "organization_name": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "onboarding_status": {
+                                            "type": "string",
+                                            "example": "pending"
                                         }
                                     },
                                     "type": "object"
@@ -110,60 +86,47 @@
                         }
                     },
                     "422": {
-                        "description": "Données de validation invalides"
+                        "description": "Erreur de validation"
+                    },
+                    "401": {
+                        "description": "Master key invalide ou absente"
                     },
                     "500": {
-                        "description": "Erreur lors du traitement"
+                        "description": "Erreur interne lors du démarrage de l'onboarding"
                     }
                 },
                 "security": [
                     {
-                        "ApiKey": []
-                    },
-                    {
-                        "AppName": []
+                        "MasterKey": []
                     }
                 ]
             }
         },
-        "/api/onboarding/create": {
+        "/api/v1/onboarding/provision": {
             "post": {
                 "tags": [
-                    "Onboarding Public"
+                    "Onboarding Stateless"
                 ],
-                "summary": "Créer un onboarding via API publique",
-                "description": "Créer un onboarding via API publique\n\nPOST /api/onboarding/create",
-                "operationId": "1ff2810d8636608f10e9a2d50ea22958",
+                "summary": "Provisionner l'infrastructure d'un onboarding",
+                "description": "Configure DNS/SSL pour le sous-domaine et génère éventuellement une clé API.",
+                "operationId": "0dee283b14762f8f5a843127a5553b35",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "uuid"
+                                ],
                                 "properties": {
-                                    "organization": {
-                                        "$ref": "#/components/schemas/Organization"
+                                    "uuid": {
+                                        "type": "string",
+                                        "format": "uuid"
                                     },
-                                    "admin": {
-                                        "$ref": "#/components/schemas/Admin"
-                                    },
-                                    "options": {
-                                        "properties": {
-                                            "send_welcome_email": {
-                                                "type": "boolean",
-                                                "example": true
-                                            },
-                                            "auto_login": {
-                                                "type": "boolean",
-                                                "example": false
-                                            }
-                                        },
-                                        "type": "object"
-                                    },
-                                    "metadata": {
-                                        "type": "object",
-                                        "example": {
-                                            "external_id": "CRM-789"
-                                        }
+                                    "generate_api_key": {
+                                        "type": "boolean",
+                                        "example": true,
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -172,89 +135,8 @@
                     }
                 },
                 "responses": {
-                    "201": {
-                        "description": "Onboarding créé avec succès",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "data": {
-                                            "properties": {
-                                                "subdomain": {
-                                                    "type": "string",
-                                                    "example": "mon-entreprise"
-                                                },
-                                                "database_name": {
-                                                    "type": "string",
-                                                    "example": "tenant_mon_entreprise"
-                                                },
-                                                "url": {
-                                                    "type": "string",
-                                                    "example": "http://mon-entreprise.localhost:8000"
-                                                },
-                                                "admin_email": {
-                                                    "type": "string",
-                                                    "example": "admin@exemple.com"
-                                                },
-                                                "created_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Erreur de validation"
-                    },
-                    "401": {
-                        "description": "Non autorisé (Clé API ou App Name invalide)"
-                    },
-                    "500": {
-                        "description": "Erreur serveur"
-                    }
-                },
-                "security": [
-                    {
-                        "ApiKey": []
-                    },
-                    {
-                        "AppName": []
-                    }
-                ]
-            }
-        },
-        "/api/onboarding/status/{subdomain}": {
-            "get": {
-                "tags": [
-                    "Onboarding Public"
-                ],
-                "summary": "Obtenir le statut d'un onboarding",
-                "description": "Obtenir le statut d'un onboarding\n\nGET /api/onboarding/status/{subdomain}",
-                "operationId": "e91c196c697a1dbf9bf0b04ef145286b",
-                "parameters": [
-                    {
-                        "name": "subdomain",
-                        "in": "path",
-                        "description": "Le sous-domaine du tenant",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
                     "200": {
-                        "description": "Statut récupéré",
+                        "description": "Onboarding provisionné",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -263,26 +145,35 @@
                                             "type": "boolean",
                                             "example": true
                                         },
-                                        "data": {
-                                            "properties": {
-                                                "subdomain": {
-                                                    "type": "string",
-                                                    "example": "mon-entreprise"
-                                                },
-                                                "status": {
-                                                    "type": "string",
-                                                    "example": "completed"
-                                                },
-                                                "database_name": {
-                                                    "type": "string",
-                                                    "example": "tenant_mon_entreprise"
-                                                },
-                                                "created_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                }
-                                            },
-                                            "type": "object"
+                                        "uuid": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "subdomain": {
+                                            "type": "string",
+                                            "example": "clinique-du-lac"
+                                        },
+                                        "email": {
+                                            "type": "string",
+                                            "format": "email"
+                                        },
+                                        "organization_name": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "onboarding_status": {
+                                            "type": "string",
+                                            "example": "activated"
+                                        },
+                                        "api_key": {
+                                            "type": "string",
+                                            "example": "ak_abc123...",
+                                            "nullable": true
+                                        },
+                                        "api_secret": {
+                                            "type": "string",
+                                            "example": "ak_abc123...",
+                                            "nullable": true
                                         }
                                     },
                                     "type": "object"
@@ -291,58 +182,48 @@
                         }
                     },
                     "404": {
-                        "description": "Onboarding non trouvé"
+                        "description": "Onboarding introuvable pour cette application"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    },
+                    "401": {
+                        "description": "Master key invalide ou absente"
+                    },
+                    "500": {
+                        "description": "Erreur interne lors du provisioning"
                     }
                 },
                 "security": [
                     {
-                        "ApiKey": []
-                    },
-                    {
-                        "AppName": []
+                        "MasterKey": []
                     }
                 ]
             }
         },
-        "/api/webhooks/register": {
-            "post": {
+        "/api/v1/onboarding/status/{uuid}": {
+            "get": {
                 "tags": [
-                    "Webhooks"
+                    "Onboarding Stateless"
                 ],
-                "summary": "Enregistrer un nouveau webhook",
-                "description": "Enregistrer un nouveau webhook\n\nPOST /api/webhooks/register",
-                "operationId": "3327efb80281af7bb8a3e629b029cf47",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "url": {
-                                        "type": "string",
-                                        "format": "url",
-                                        "example": "https://votre-app.com/webhooks"
-                                    },
-                                    "events": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string",
-                                            "enum": [
-                                                "onboarding.completed",
-                                                "onboarding.failed",
-                                                "test"
-                                            ]
-                                        }
-                                    }
-                                },
-                                "type": "object"
-                            }
+                "summary": "Récupérer le statut d'un onboarding",
+                "description": "Retourne le statut technique (pending/activated/cancelled) et les informations de sous-domaine.",
+                "operationId": "3dd63400af8bb00b622b17db494d9fd3",
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "description": "UUID retourné par /onboarding/start",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
-                },
+                ],
                 "responses": {
-                    "201": {
-                        "description": "Webhook enregistré",
+                    "200": {
+                        "description": "Statut de l'onboarding",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -351,31 +232,53 @@
                                             "type": "boolean",
                                             "example": true
                                         },
-                                        "data": {
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer"
-                                                },
-                                                "url": {
-                                                    "type": "string"
-                                                },
-                                                "secret": {
-                                                    "description": "Secret pour vérifier les signatures HMAC",
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "type": "object"
+                                        "uuid": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "subdomain": {
+                                            "type": "string",
+                                            "example": "clinique-du-lac"
+                                        },
+                                        "email": {
+                                            "type": "string",
+                                            "format": "email"
+                                        },
+                                        "organization_name": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "onboarding_status": {
+                                            "type": "string",
+                                            "example": "activated"
+                                        },
+                                        "dns_configured": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "ssl_configured": {
+                                            "type": "boolean",
+                                            "example": true
                                         }
                                     },
                                     "type": "object"
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Onboarding introuvable pour cette application"
+                    },
+                    "401": {
+                        "description": "Master key invalide ou absente"
+                    },
+                    "500": {
+                        "description": "Erreur interne lors de la récupération du statut"
                     }
                 },
                 "security": [
                     {
-                        "ApiKey": []
+                        "MasterKey": []
                     }
                 ]
             }
@@ -434,32 +337,18 @@
             }
         },
         "securitySchemes": {
-            "ApiKey": {
+            "MasterKey": {
                 "type": "apiKey",
-                "description": "Clé API secrète fournie par Akasi Group",
-                "name": "X-API-Key",
-                "in": "header"
-            },
-            "AppName": {
-                "type": "apiKey",
-                "description": "Identifiant unique de votre application (ex: Ejustice)",
-                "name": "X-App-Name",
+                "description": "Master key de votre application cliente, obtenue via /api/v1/applications/register",
+                "name": "X-Master-Key",
                 "in": "header"
             }
         }
     },
     "tags": [
         {
-            "name": "Onboarding Externe",
-            "description": "Onboarding Externe"
-        },
-        {
-            "name": "Onboarding Public",
-            "description": "Onboarding Public"
-        },
-        {
-            "name": "Webhooks",
-            "description": "Webhooks"
+            "name": "Onboarding Stateless",
+            "description": "Flux d'onboarding stateless basé sur uuid + sous-domaine. L'application cliente reste propriétaire du tenant métier."
         }
     ]
 }

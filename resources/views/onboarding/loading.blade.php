@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Création en cours - Akasi Group')
+@section('title', trans('onboarding.loading_title') . ' - ' . config('app.brand_name'))
 
 @push('styles')
 <style>
@@ -56,15 +56,15 @@
 
 @section('content')
 <div class="logo">
-    <h1>Akasi Group</h1>
+    <h1>{{ config('app.brand_name') }}</h1>
 </div>
 
 <div class="loading-container">
     <div class="loading-spinner-large"></div>
     
     <div id="messageContainer">
-        <div class="loading-message active" id="message1">Veillez patienter…</div>
-        <div class="loading-message inactive" id="message2">Création de votre espace Akasi Group en cours…</div>
+        <div class="loading-message active" id="message1">{{ trans('messages.loading') }}</div>
+        <div class="loading-message inactive" id="message2">{{ trans('onboarding.loading_message', ['brand' => config('app.brand_name')]) }}</div>
         <div class="loading-message inactive" id="message3">Configuration de votre environnement…</div>
         <div class="loading-message inactive" id="message4">Finalisation…</div>
     </div>
@@ -100,7 +100,7 @@
         // Appeler l'API pour traiter l'onboarding
         const onboardingData = @json(session('onboarding_data'));
         
-        if (!onboardingData || !onboardingData.email || !onboardingData.organization_name) {
+        if (!onboardingData || !onboardingData.email) {
             window.location.href = '{{ route("onboarding.start") }}';
             return;
         }
@@ -116,17 +116,66 @@
             },
             data: JSON.stringify({
                 email: onboardingData.email,
-                organization_name: onboardingData.organization_name
+                organization_name: onboardingData.organization_name || null
             }),
             success: function(response) {
                 clearInterval(messageInterval);
                 $('#message4').removeClass('inactive').addClass('active');
                 $('#progressFill').css('width', '100%');
                 
-                // Rediriger vers la page de confirmation après un court délai
+                // Afficher une notification informant que l'espace a été créé
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Espace créé avec succès !',
+                    html: '<p>Votre espace <strong>' + (response.result.organization_name || '') + '</strong> a été créé.</p><p style="margin-top: 10px; font-size: 14px;">Un email vous a été envoyé à <strong>' + onboardingData.email + '</strong> pour définir votre mot de passe.</p><p style="margin-top: 10px; font-size: 14px;">Vous allez être redirigé vers votre dashboard...</p>',
+                    confirmButtonText: 'Accéder au dashboard',
+                    confirmButtonColor: '#00286f',
+                    allowOutsideClick: false,
+                    timer: 2000,
+                    timerProgressBar: true
+                }).then(() => {
+                    // Rediriger vers le dashboard avec le token d'authentification automatique
+                    redirectToDashboard(response.result);
+                });
+                
+                // Redirection automatique après 2 secondes si l'utilisateur ne clique pas
                 setTimeout(function() {
-                    window.location.href = '{{ route("onboarding.confirmation") }}';
-                }, 1500);
+                    redirectToDashboard(response.result);
+                }, 2000);
+                
+                // Fonction pour rediriger vers le dashboard
+                function redirectToDashboard(result) {
+                    if (result && result.subdomain && result.auto_login_token) {
+                        const subdomain = result.subdomain;
+                        const autoLoginToken = result.auto_login_token;
+                        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                        const port = window.location.port || (isLocal ? '8000' : '');
+                        const protocol = window.location.protocol;
+                        
+                        if (isLocal) {
+                            window.location.href = `${protocol}//${subdomain}.localhost:${port}/dashboard?auto_login_token=${autoLoginToken}`;
+                        } else {
+                            const baseDomain = '{{ config("app.brand_domain") }}';
+                            window.location.href = `${protocol}//${subdomain}.${baseDomain}/dashboard?auto_login_token=${autoLoginToken}`;
+                        }
+                    } else if (result && result.subdomain) {
+                        // Fallback sans token (moins sécurisé mais fonctionnel)
+                        const subdomain = result.subdomain;
+                        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                        const port = window.location.port || (isLocal ? '8000' : '');
+                        const protocol = window.location.protocol;
+                        
+                        if (isLocal) {
+                            window.location.href = `${protocol}//${subdomain}.localhost:${port}/dashboard`;
+                        } else {
+                            const baseDomain = '{{ config("app.brand_domain") }}';
+                            window.location.href = `${protocol}//${subdomain}.${baseDomain}/dashboard`;
+                        }
+                    } else {
+                        // Fallback si pas de données dans la réponse
+                        window.location.href = '{{ route("onboarding.start") }}';
+                    }
+                }
             },
             error: function(xhr) {
                 clearInterval(messageInterval);

@@ -117,6 +117,33 @@ class UpdateTenantDatabases extends Command
         if (!in_array('password_changed_at', $columnNames)) {
             $connection->statement("ALTER TABLE `users` ADD COLUMN `password_changed_at` timestamp NULL DEFAULT NULL AFTER `password`");
         }
+        if (!in_array('first_name', $columnNames)) {
+            $connection->statement("ALTER TABLE `users` ADD COLUMN `first_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `name`");
+        }
+        if (!in_array('last_name', $columnNames)) {
+            $connection->statement("ALTER TABLE `users` ADD COLUMN `last_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `first_name`");
+        }
+        if (!in_array('company', $columnNames)) {
+            $connection->statement("ALTER TABLE `users` ADD COLUMN `company` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `phone`");
+        }
+        if (!in_array('address', $columnNames)) {
+            $connection->statement("ALTER TABLE `users` ADD COLUMN `address` text COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `company`");
+        }
+        if (!in_array('city', $columnNames)) {
+            $connection->statement("ALTER TABLE `users` ADD COLUMN `city` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `address`");
+        }
+        if (!in_array('postal_code', $columnNames)) {
+            $connection->statement("ALTER TABLE `users` ADD COLUMN `postal_code` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `city`");
+        }
+        if (!in_array('country', $columnNames)) {
+            $connection->statement("ALTER TABLE `users` ADD COLUMN `country` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `postal_code`");
+        }
+        if (!in_array('job_title', $columnNames)) {
+            $connection->statement("ALTER TABLE `users` ADD COLUMN `job_title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `country`");
+        }
+        if (!in_array('bio', $columnNames)) {
+            $connection->statement("ALTER TABLE `users` ADD COLUMN `bio` text COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `job_title`");
+        }
 
         // Mettre à jour les utilisateurs existants sans role/status
         $connection->statement("UPDATE `users` SET `role` = 'admin', `status` = 'active' WHERE `role` IS NULL OR `status` IS NULL");

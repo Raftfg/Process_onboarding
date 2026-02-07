@@ -30,7 +30,7 @@ Route::get('/', function (Request $request) {
         }
     } else {
         // Autre production: subdomain.domain.tld (3+ parties)
-        $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+        $baseDomain = config('app.brand_domain');
         $baseParts = explode('.', $baseDomain);
         if (count($parts) > count($baseParts)) {
             $isSubdomain = true;
@@ -192,8 +192,14 @@ Route::prefix('admin')->group(function () {
         // Gestion des Clés API
         Route::get('/api-keys', [App\Http\Controllers\Admin\ApiKeyController::class, 'index'])->name('admin.api-keys.index');
         Route::post('/api-keys', [App\Http\Controllers\Admin\ApiKeyController::class, 'store'])->name('admin.api-keys.store');
+        Route::get('/api-keys/{id}/config', [App\Http\Controllers\Admin\ApiKeyController::class, 'editConfig'])->name('admin.api-keys.config');
+        Route::put('/api-keys/{id}/config', [App\Http\Controllers\Admin\ApiKeyController::class, 'updateConfig'])->name('admin.api-keys.config.update');
         Route::post('/api-keys/{id}/toggle', [App\Http\Controllers\Admin\ApiKeyController::class, 'toggleStatus'])->name('admin.api-keys.toggle');
         Route::delete('/api-keys/{id}', [App\Http\Controllers\Admin\ApiKeyController::class, 'destroy'])->name('admin.api-keys.destroy');
+
+        // Monitoring des onboardings
+        Route::get('/monitoring/onboardings', [App\Http\Controllers\Admin\OnboardingMonitoringController::class, 'index'])->name('admin.monitoring.onboardings');
+        Route::get('/monitoring/onboardings/export', [App\Http\Controllers\Admin\OnboardingMonitoringController::class, 'export'])->name('admin.monitoring.onboardings.export');
     });
 });
 
@@ -202,4 +208,13 @@ Route::middleware(['web'])->group(function () {
     Route::get('/module/test', [App\Http\Controllers\TestModuleController::class, 'index'])->name('module.test.index');
     Route::post('/module/test/trigger', [App\Http\Controllers\TestModuleController::class, 'trigger'])->name('module.test.trigger');
     Route::post('/module/test/callback', [App\Http\Controllers\TestModuleController::class, 'callback'])->name('module.test.callback');
+});
+
+// Routes pour l'interface web self-service des applications clientes
+Route::prefix('applications')->group(function () {
+    Route::get('/', [App\Http\Controllers\Web\ApplicationRegistrationController::class, 'index'])->name('applications.index');
+    Route::get('/register', [App\Http\Controllers\Web\ApplicationRegistrationController::class, 'showRegisterForm'])->name('applications.register.form');
+    Route::post('/register', [App\Http\Controllers\Web\ApplicationRegistrationController::class, 'register'])->name('applications.register');
+    Route::get('/{app_id}/dashboard', [App\Http\Controllers\Web\ApplicationRegistrationController::class, 'dashboard'])->name('applications.dashboard');
+    Route::get('/{app_id}/api-keys', [App\Http\Controllers\Web\ApplicationRegistrationController::class, 'apiKeys'])->name('applications.api-keys');
 });

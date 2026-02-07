@@ -18,6 +18,13 @@ return [
     'subdomain_web_root' => env('SUBDOMAIN_WEB_ROOT', '/var/www/html'),
     'activation_token_expires_days' => env('ACTIVATION_TOKEN_EXPIRES_DAYS', 7), // Durée de validité du token d'activation en jours
 
+    // Configuration de branding pour réutilisabilité
+    'brand_name' => env('BRAND_NAME', 'Akasi Group'),
+    'brand_domain' => env('BRAND_DOMAIN', 'akasigroup.local'),
+    'database_prefix' => env('DATABASE_PREFIX', 'akasigroup_'),
+    'email_from_name' => env('EMAIL_FROM_NAME', 'Akasi Group'),
+    'email_from_address' => env('EMAIL_FROM_ADDRESS', 'noreply@akasigroup.local'),
+
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),

@@ -1,6 +1,8 @@
-# Spécification API - Akasi Onboarding
+# Spécification API - Microservice Onboarding
 
-Ce document détaille l'utilisation de l'API REST et l'intégration des webhooks pour le microservice d'onboarding d'Akasi Group.
+Ce document détaille l'utilisation de l'API REST pour le microservice d'infrastructure et d'enregistrement.
+
+> **Note** : Le microservice ne crée plus les tenants. Il fournit uniquement l'infrastructure (bases de données, sous-domaines, DNS/SSL) et enregistre les métadonnées d'onboarding.
 
 ## 🔑 Authentification
 
@@ -12,40 +14,29 @@ Toutes les requêtes API (sauf spécifié autrement) doivent inclure les headers
 | `X-App-Name` | Nom de l'application (ex: `Ejustice`) | **OUI** (Toutes requêtes protégées) |
 | `Authorization` | `Bearer <votre_cle_api>` | Déprécié (préférez `X-API-Key`) |
 
-Les clés API sont générées et gérées depuis le **Dashboard Super Admin** (`/admin/api-keys`).
+Les clés API peuvent être :
+- Générées via self-service par les applications (`POST /api/v1/applications/{app_id}/api-keys`)
+- Générées automatiquement lors de l'onboarding (si `generate_api_key: true`)
+- Gérées depuis le **Dashboard Super Admin** (`/admin/api-keys`)
 
 ---
 
-## 📡 Endpoints REST
+## 📡 Endpoints REST (Onboarding stateless)
 
-### 1. Créer un Onboarding
-Démarre le processus de création d'un nouveau tenant.
+### 1. Démarrer un Onboarding
 
-- **URL** : `/api/v1/onboarding/create`
+**But** : enregistrer email + organisation + sous-domaine dans la base centrale.
+
+- **URL** : `/api/v1/onboarding/start`
 - **Méthode** : `POST`
+- **Headers Requis** :
+  - `X-Master-Key` : master key de votre application (obtenue lors de l'enregistrement).
 - **Corps de la requête** :
 
 ```json
 {
-  "organization": {
-    "name": "Nom de l'Hôpital",
-    "address": "123 Rue de la Santé, Libreville",
-    "phone": "+241 01 23 45 67",
-    "email": "contact@hopital-libreville.com"
-  },
-  "admin": {
-    "first_name": "Alice",
-    "last_name": "Durand",
-    "email": "admin@hopital-libreville.com"
-  },
-  "metadata": {
-    "external_id": "CRM-789",
-    "plan": "premium"
-  },
-  "options": {
-    "send_welcome_email": true,
-    "auto_login": false
-  }
+  "email": "admin@example.com",
+  "organization_name": "Clinique du Lac"
 }
 ```
 
@@ -54,101 +45,234 @@ Démarre le processus de création d'un nouveau tenant.
 ```json
 {
   "success": true,
-  "data": {
-    "subdomain": "hopital-libreville",
-    "database_name": "tenant_hopital_libreville",
-    "url": "http://hopital-libreville.votre-domaine.com",
-    "admin_email": "admin@hopital-libreville.com",
-    "created_at": "2026-02-02T12:00:00Z"
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "subdomain": "clinique-du-lac",
+  "email": "admin@example.com",
+  "organization_name": "Clinique du Lac",
+  "onboarding_status": "pending",
+  "metadata": {
+    "created_at": "2026-02-07T10:30:00Z",
+    "updated_at": "2026-02-07T10:30:00Z",
+    "dns_configured": false,
+    "ssl_configured": false,
+    "infrastructure_status": "pending",
+    "api_key_generated": false,
+    "provisioning_attempts": 0
   }
 }
 ```
 
-### 2. Statut de l'Onboarding
-Vérifie l'état d'avancement d'un tenant.
+> `onboarding_status` correspond à l'état de l'enregistrement central (`pending`, puis `activated` ou `cancelled`).
+> 
+> **Metadata enrichies** : Les réponses incluent désormais des métadonnées techniques pour le monitoring :
+> - `created_at`, `updated_at` : timestamps ISO 8601
+> - `dns_configured`, `ssl_configured` : état de l'infrastructure
+> - `infrastructure_status` : `pending` | `partial` | `ready`
+> - `api_key_generated` : indique si une clé API a été générée
+> - `provisioning_attempts` : nombre de tentatives de provisioning
 
-- **URL** : `/api/onboarding/status/{subdomain}`
-- **Méthode** : `GET`
-- **Réponse** :
+---
 
-```json
-{
-  "success": true,
-  "data": {
-    "subdomain": "hopital-libreville",
-    "status": "completed",
-    "database_name": "tenant_hopital_libreville",
-    "created_at": "2026-02-02T11:00:00Z"
-  }
-}
-```
-*Statuts possibles : `pending`, `processing`, `pending_activation`, `completed`, `failed`.*
+### 2. Provisionner l'Infrastructure
 
-### 3. Onboarding Externe (Intégration Secteur)
-Endpoint spécialisé pour l'onboarding depuis une application tierce (ex: SIH, logiciel externe). Ce point de terminaison permet de passer des scripts SQL de migration personnalisés pour préparer l'environnement du nouveau tenant.
+**But** : configurer DNS/SSL et générer éventuellement une clé API.
 
-- **URL** : `/api/v1/onboarding/external`
+- **URL** : `/api/v1/onboarding/provision`
 - **Méthode** : `POST`
-- **Headers Requis** : 
-  - `X-API-Key` : Votre clé API.
-  - `X-App-Name` : Identifiant unique de votre application (ex: `Secteur-Sante-v1`).
+- **Headers Requis** :
+  - `X-Master-Key` : master key de votre application.
 - **Corps de la requête** :
 
-> [!IMPORTANT]
-> **Isolation par Application** : Chaque Clé API est liée à un Nom d'Application unique (configuré lors de sa création).
-> - Vous **DEVEZ** envoyer le header `X-App-Name` correspondant exactement au nom configuré pour votre clé.
-> - Si le header est manquant ou ne correspond pas, l'accès sera **REFUSÉ** (401 Unauthorized), même si la clé est valide.
-> 
-> Le nom de l'organisation est unique **par application**. Une organisation nommée "Clinique A" peut exister pour l'application "App-1" et pour "App-2" sans conflit. En revanche, "App-1" ne peut pas créer deux fois la même organisation.
-
 ```json
 {
-  "email": "admin@secteur-sante.com",
-  "organization_name": "Clinique Du Lac",
-  "callback_url": "https://secteur-sante.com/api/tenants/confirm",
-  "metadata": {
-    "external_id": "SIH-123456"
-  },
-  "migrations": [
-    {
-      "filename": "2026_02_03_create_patients_table.php",
-      "content": "<?php\nuse Illuminate\\Database\\Migrations\\Migration;\nuse Illuminate\\Database\\Schema\\Blueprint;\nuse Illuminate\\Support\Facades\\Schema;\n\nreturn new class extends Migration {\n    public function up() {\n        Schema::create('specific_patients', function (Blueprint $table) {\n            $table->id();\n            $table->string('name');\n            $table->timestamps();\n        });\n    }\n};"
-    }
-  ]
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "generate_api_key": true
 }
 ```
 
 - **Réponse (Succès 200)** :
+
 ```json
 {
   "success": true,
-  "message": "Onboarding externe initié avec succès",
-  "result": {
-    "subdomain": "clinique-du-lac",
-    "activation_token": "...",
-    "url": "http://clinique-du-lac.localhost:8000"
-  }
-}
-```
-
-#### Callback de Confirmation
-Si un `callback_url` est fourni, le microservice envoie une requête `POST` à cette URL une fois que le tenant est provisionné.
-
-**Payload du Callback** :
-```json
-{
-  "success": true,
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
   "subdomain": "clinique-du-lac",
-  "database": "tenant_clinique_du_lac",
-  "url": "http://clinique-du-lac.localhost:8000",
-  "email": "admin@secteur-sante.com",
-  "organization_name": "Clinique Du Lac",
-  "activation_token": "...",
+  "email": "admin@example.com",
+  "organization_name": "Clinique du Lac",
+  "onboarding_status": "activated",
+  "api_key": "ak_abc123...",       // transmis une seule fois si généré
+  "api_secret": "ak_abc123...",     // même valeur, à stocker côté client
   "metadata": {
-    "external_id": "SIH-123456"
+    "created_at": "2026-02-07T10:30:00Z",
+    "updated_at": "2026-02-07T10:35:00Z",
+    "dns_configured": true,
+    "ssl_configured": true,
+    "infrastructure_status": "ready",
+    "api_key_generated": true,
+    "provisioning_attempts": 1,
+    "is_idempotent": false
   }
 }
 ```
+
+> Si l'onboarding est déjà provisionné, l'appel est **idempotent** : 
+> - `api_key` et `api_secret` seront `null`
+> - `onboarding_status` restera inchangé
+> - `metadata.is_idempotent` sera `true`
+
+---
+
+### 3. Consulter le Statut d'un Onboarding
+
+- **URL** : `/api/v1/onboarding/status/{uuid}`
+- **Méthode** : `GET`
+- **Headers Requis** :
+  - `X-Master-Key` : master key de votre application.
+
+- **Réponse (Succès 200)** :
+
+```json
+{
+  "success": true,
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "subdomain": "clinique-du-lac",
+  "email": "admin@example.com",
+  "organization_name": "Clinique du Lac",
+  "onboarding_status": "activated",
+  "dns_configured": true,
+  "ssl_configured": true,
+  "metadata": {
+    "created_at": "2026-02-07T10:30:00Z",
+    "updated_at": "2026-02-07T10:35:00Z",
+    "dns_configured": true,
+    "ssl_configured": true,
+    "infrastructure_status": "ready",
+    "api_key_generated": true,
+    "provisioning_attempts": 1
+  }
+}
+```
+
+---
+
+## 🚦 Rate Limiting
+
+Le microservice applique des limites de taux pour protéger l'infrastructure et garantir une utilisation équitable.
+
+### Limites par Endpoint
+
+| Endpoint | Limite | Période | Clé de limitation |
+|----------|--------|---------|-------------------|
+| `POST /api/v1/onboarding/start` | 10 requêtes | 1 heure | Par application (X-Master-Key) |
+| `POST /api/v1/onboarding/provision` | 1 requête | 24 heures | Par UUID (tenant) |
+| `GET /api/v1/onboarding/status/{uuid}` | 100 requêtes | 1 heure | Par application (X-Master-Key) |
+
+### Limite Globale par IP
+
+- **50 requêtes / heure** pour tous les endpoints confondus (par adresse IP)
+
+### Réponse en cas de dépassement (429)
+
+```json
+{
+  "success": false,
+  "message": "Trop de requêtes. Veuillez réessayer plus tard.",
+  "error": "rate_limit_exceeded",
+  "retry_after_minutes": 15
+}
+```
+
+**Headers de réponse** :
+- `X-RateLimit-Limit` : limite maximale
+- `X-RateLimit-Remaining` : nombre de requêtes restantes
+- `X-RateLimit-Reset` : timestamp de réinitialisation
+- `Retry-After` : nombre de secondes avant de pouvoir réessayer
+
+### Bonnes pratiques
+
+- Implémentez un **backoff exponentiel** en cas de réponse 429
+- Surveillez les headers `X-RateLimit-Remaining` pour éviter les dépassements
+- Utilisez `/status` plutôt que `/provision` pour vérifier l'état (limite plus élevée)
+
+---
+
+## 📋 Codes HTTP et Gestion d'Erreurs
+
+### Codes de Succès
+
+| Code | Description | Endpoint |
+|------|-------------|----------|
+| `200` | Succès (provisioning, status) | `POST /provision`, `GET /status` |
+| `201` | Créé avec succès | `POST /start` |
+
+### Codes d'Erreur Client
+
+| Code | Description | Exemple |
+|------|-------------|---------|
+| `400` | Requête invalide | Paramètres manquants |
+| `401` | Non autorisé | Master key invalide ou absente |
+| `403` | Interdit | Application suspendue |
+| `404` | Non trouvé | UUID introuvable pour cette application |
+| `422` | Erreur de validation | Email invalide, sous-domaine déjà utilisé |
+| `429` | Trop de requêtes | Rate limit dépassé |
+
+### Codes d'Erreur Serveur
+
+| Code | Description |
+|------|-------------|
+| `500` | Erreur interne du serveur |
+| `503` | Service temporairement indisponible |
+
+### Format des Erreurs
+
+Toutes les erreurs suivent ce format :
+
+```json
+{
+  "success": false,
+  "message": "Description de l'erreur",
+  "error": "code_erreur",
+  "errors": {
+    "field": ["Message de validation"]
+  }
+}
+```
+
+### Bonnes pratiques de logging côté client
+
+Lors de l'intégration, loggez systématiquement :
+
+```php
+// Exemple PHP
+$response = $httpClient->post('/api/v1/onboarding/start', [
+    'headers' => ['X-Master-Key' => $masterKey],
+    'json' => ['email' => $email, 'organization_name' => $orgName]
+]);
+
+// Logger pour le debugging et le monitoring
+Log::info('Onboarding start request', [
+    'uuid' => $response->json()['uuid'] ?? null,
+    'status_code' => $response->status(),
+    'url' => '/api/v1/onboarding/start',
+    'response_body' => $this->sanitizeResponse($response->json()), // Ne pas logger les secrets
+]);
+
+// Fonction de sanitization
+private function sanitizeResponse(array $data): array
+{
+    unset($data['api_key'], $data['api_secret'], $data['master_key']);
+    return $data;
+}
+```
+
+**À logger** :
+- `uuid` : identifiant unique pour corrélation
+- `status_code` : code HTTP de la réponse
+- `url` : endpoint appelé
+- `response_body` : réponse sanitizée (sans secrets)
+
+**À ne PAS logger** :
+- `api_key`, `api_secret`, `master_key` : secrets sensibles
 
 ---
 

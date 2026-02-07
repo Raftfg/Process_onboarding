@@ -65,9 +65,10 @@ class RedirectIfAuthenticated
                                 
                                 // Construire l'URL du dashboard avec le sous-domaine dans l'URL (sans paramètre)
                                 if (config('app.env') === 'local') {
-                                    $dashboardUrl = "http://{$subdomain}.localhost:8000/dashboard";
+                                    $port = $request->getPort();
+                                    $dashboardUrl = "http://{$subdomain}.localhost:{$port}/dashboard";
                                 } else {
-                                    $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+                                    $baseDomain = config('app.brand_domain');
                                     $dashboardUrl = "https://{$subdomain}.{$baseDomain}/dashboard";
                                 }
                                 

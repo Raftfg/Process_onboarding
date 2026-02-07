@@ -107,13 +107,13 @@
         <div class="card">
             @if($isWelcome)
                 <div class="success-icon">✓</div>
-                <h1>Bienvenue sur Akasi Group !</h1>
+                <h1>{{ trans('onboarding.welcome_title', ['brand' => config('app.brand_name')]) }}</h1>
                 <p>Votre compte a été créé avec succès.</p>
                 <div class="subdomain">{{ $subdomain }}</div>
                 <p>Vous pouvez maintenant commencer à utiliser votre espace d'administration.</p>
             @else
-                <h1>Bienvenue</h1>
-                <p>Vous êtes sur votre sous-domaine Akasi Group.</p>
+                <h1>{{ trans('messages.welcome') }}</h1>
+                <p>Vous êtes sur votre sous-domaine {{ config('app.brand_name') }}.</p>
                 <div class="subdomain">{{ $subdomain }}</div>
             @endif
             
@@ -122,7 +122,7 @@
                     @if(config('app.env') === 'local')
                         <a href="http://{{ $subdomain }}.localhost:8000/dashboard" class="btn">Accéder au tableau de bord</a>
                     @else
-                        <a href="https://{{ $subdomain }}.{{ config('app.subdomain_base_domain', 'akasigroup.local') }}/dashboard" class="btn">Accéder au tableau de bord</a>
+                        <a href="https://{{ $subdomain }}.{{ config('app.brand_domain') }}/dashboard" class="btn">Accéder au tableau de bord</a>
                     @endif
                 @else
                     <a href="{{ route('dashboard') }}" class="btn">Accéder au tableau de bord</a>

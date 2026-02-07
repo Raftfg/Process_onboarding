@@ -207,7 +207,7 @@
 <body>
     <div class="header">
         <div class="header-content">
-            <h1>Akasi Group - Tableau de bord</h1>
+            <h1>{{ config('app.brand_name') }} - Tableau de bord</h1>
             <div class="header-actions">
                 @auth
                 <div class="user-info">
@@ -231,7 +231,7 @@
         @if(isset($onboarding))
             <div class="welcome-card">
                 <h2>Bienvenue, {{ Auth::user()->name ?? Auth::user()->email ?? 'Administrateur' }} !</h2>
-                <p>Votre espace Akasi Group est maintenant configuré et prêt à l'emploi.</p>
+                <p>Votre espace {{ config('app.brand_name') }} est maintenant configuré et prêt à l'emploi.</p>
             </div>
 
             <div class="info-grid">

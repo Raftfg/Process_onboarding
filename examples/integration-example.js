@@ -1,12 +1,18 @@
 /**
- * Exemple d'intégration du microservice d'onboarding Akasi Group
+ * Exemple d'intégration du microservice d'onboarding
  * 
  * Ce fichier montre comment intégrer le microservice dans votre application
+ * 
+ * Configuration requise :
+ * - ONBOARDING_API_URL : URL de base de l'API (ex: https://onboarding.votre-domaine.com/api)
+ * - API_KEY : Votre clé API
+ * - APP_NAME : Nom de votre application (pour le header X-App-Name)
  */
 
-// Configuration
-const ONBOARDING_API_URL = 'https://onboarding.akasigroup.com/api';
-const API_KEY = 'YOUR_API_KEY_HERE'; // À remplacer par votre clé API
+// Configuration - À adapter selon votre environnement
+const ONBOARDING_API_URL = process.env.ONBOARDING_API_URL || 'https://onboarding.votre-domaine.com/api';
+const API_KEY = process.env.ONBOARDING_API_KEY || 'YOUR_API_KEY_HERE';
+const APP_NAME = process.env.ONBOARDING_APP_NAME || 'votre-nom-app';
 
 /**
  * Créer un nouveau tenant via l'API

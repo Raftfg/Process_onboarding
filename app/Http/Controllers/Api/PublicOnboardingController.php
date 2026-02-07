@@ -12,8 +12,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
 
-use OpenApi\Attributes as OA;
-
 class PublicOnboardingController extends Controller
 {
     protected $onboardingService;
@@ -24,56 +22,6 @@ class PublicOnboardingController extends Controller
         $this->onboardingService = $onboardingService;
         $this->tenantService = $tenantService;
     }
-
-    #[OA\Post(
-        path: "/api/onboarding/create",
-        summary: "Créer un onboarding via API publique",
-        tags: ["Onboarding Public"],
-        security: [["ApiKey" => []], ["AppName" => []]],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                properties: [
-                    new OA\Property(property: "organization", ref: "#/components/schemas/Organization"),
-                    new OA\Property(property: "admin", ref: "#/components/schemas/Admin"),
-                    new OA\Property(
-                        property: "options",
-                        properties: [
-                            new OA\Property(property: "send_welcome_email", type: "boolean", example: true),
-                            new OA\Property(property: "auto_login", type: "boolean", example: false)
-                        ],
-                        type: "object"
-                    ),
-                    new OA\Property(property: "metadata", type: "object", example: ["external_id" => "CRM-789"])
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(
-                response: 201,
-                description: "Onboarding créé avec succès",
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: "success", type: "boolean", example: true),
-                        new OA\Property(
-                            property: "data",
-                            properties: [
-                                new OA\Property(property: "subdomain", type: "string", example: "mon-entreprise"),
-                                new OA\Property(property: "database_name", type: "string", example: "tenant_mon_entreprise"),
-                                new OA\Property(property: "url", type: "string", example: "http://mon-entreprise.localhost:8000"),
-                                new OA\Property(property: "admin_email", type: "string", example: "admin@exemple.com"),
-                                new OA\Property(property: "created_at", type: "string", format: "date-time")
-                            ],
-                            type: "object"
-                        )
-                    ]
-                )
-            ),
-            new OA\Response(response: 400, description: "Erreur de validation"),
-            new OA\Response(response: 401, description: "Non autorisé (Clé API ou App Name invalide)"),
-            new OA\Response(response: 500, description: "Erreur serveur")
-        ]
-    )]
 
     /**
      * Créer un onboarding via API publique

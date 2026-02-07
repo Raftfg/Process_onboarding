@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'title' => 'Onboarding',
+    'welcome_title' => 'Bienvenue sur :brand',
+    'welcome_subtitle' => 'Créez votre espace en quelques étapes simples',
+    'create_space' => 'Créer votre espace',
+    'create_space_subtitle' => 'Remplissez les informations ci-dessous pour commencer',
+    'loading_title' => 'Création en cours',
+    'loading_message' => 'Création de votre espace :brand en cours…',
+    'confirmation_title' => 'Confirmation',
+    'account_activated_success' => 'Votre compte a été activé avec succès ! Bienvenue sur votre espace :brand.',
+    'activation_title' => 'Activer votre compte',
+    'activation_subtitle' => 'Créez un mot de passe pour finaliser votre inscription',
+    'activation_expired' => 'Lien d\'activation expiré',
+    'activation_expired_message' => 'Le lien d\'activation a expiré. Veuillez demander un nouveau lien.',
+    'activation_invalid' => 'Lien d\'activation invalide',
+    'activation_invalid_message' => 'Le lien d\'activation n\'est plus valide ou a déjà été utilisé.',
+    'email_required' => 'L\'adresse email est requise',
+    'organization_required' => 'Le nom de l\'organisation est requis',
+    'password_required' => 'Le mot de passe est requis',
+    'password_min' => 'Le mot de passe doit contenir au moins :min caractères',
+    'password_confirmed' => 'Les mots de passe ne correspondent pas',
+    'please_fill_form' => 'Veuillez remplir le formulaire pour continuer.',
+    'error_occurred' => 'Une erreur est survenue. Veuillez rafraîchir la page et réessayer.',
+];

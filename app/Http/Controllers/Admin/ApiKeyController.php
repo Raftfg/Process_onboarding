@@ -69,4 +69,53 @@ class ApiKeyController extends Controller
 
         return back()->with('success', 'Clé API supprimée avec succès.');
     }
+
+    /**
+     * Affiche le formulaire de configuration de l'API
+     */
+    public function editConfig($id)
+    {
+        $key = ApiKey::findOrFail($id);
+        $config = $key->api_config ?? ApiKey::getDefaultApiConfig();
+        
+        return view('admin.api-keys.config', compact('key', 'config'));
+    }
+
+    /**
+     * Met à jour la configuration de l'API
+     */
+    public function updateConfig(Request $request, $id)
+    {
+        $key = ApiKey::findOrFail($id);
+
+        $request->validate([
+            'require_organization_name' => 'nullable|boolean',
+            'organization_name_generation_strategy' => 'nullable|in:auto,email,timestamp,metadata,custom',
+            'organization_name_template' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $currentConfig = $key->api_config ?? ApiKey::getDefaultApiConfig();
+            
+            $newConfig = [
+                'require_organization_name' => $request->has('require_organization_name') ? (bool) $request->require_organization_name : $currentConfig['require_organization_name'],
+                'organization_name_generation_strategy' => $request->organization_name_generation_strategy ?? $currentConfig['organization_name_generation_strategy'],
+                'organization_name_template' => $request->organization_name_template ?? $currentConfig['organization_name_template'],
+                'custom_validation_rules' => $currentConfig['custom_validation_rules'] ?? [],
+            ];
+
+            // Si la stratégie n'est pas "custom", supprimer le template
+            if ($newConfig['organization_name_generation_strategy'] !== 'custom') {
+                $newConfig['organization_name_template'] = null;
+            }
+
+            $key->update(['api_config' => $newConfig]);
+
+            return redirect()->route('admin.api-keys.index')
+                ->with('success', 'Configuration de l\'API mise à jour avec succès.');
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la mise à jour de la config API: ' . $e->getMessage());
+            return back()->with('error', 'Erreur lors de la mise à jour : ' . $e->getMessage());
+        }
+    }
 }

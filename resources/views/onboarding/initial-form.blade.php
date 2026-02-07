@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Créer votre espace - Akasi Group')
+@section('title', trans('onboarding.create_space') . ' - ' . config('app.brand_name'))
 
 @push('styles')
 <style>
@@ -81,12 +81,12 @@
 
 @section('content')
 <div class="logo">
-    <h1>Akasi Group</h1>
+    <h1>{{ config('app.brand_name') }}</h1>
 </div>
 
 <div class="welcome-message">
-    <h2>Créer votre espace</h2>
-    <p>Remplissez les informations ci-dessous pour commencer</p>
+    <h2>{{ trans('onboarding.create_space') }}</h2>
+    <p>{{ trans('onboarding.create_space_subtitle') }}</p>
 </div>
 
 @if(session('error'))
@@ -109,8 +109,8 @@
     </div>
 
     <div class="form-group">
-        <label for="organization_name">Nom de votre organisation *</label>
-        <input type="text" id="organization_name" name="organization_name" required 
+        <label for="organization_name">Nom de votre organisation</label>
+        <input type="text" id="organization_name" name="organization_name" 
                value="{{ old('organization_name') }}" placeholder="Ex: Mon Organisation">
         @error('organization_name')
             <div class="error-message">{{ $message }}</div>

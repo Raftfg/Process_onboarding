@@ -78,6 +78,9 @@
                             <td>{{ $key->created_at->format('d/m/Y') }}</td>
                             <td>
                                 <div style="display: flex; gap: 10px;">
+                                    <a href="{{ route('admin.api-keys.config', $key->id) }}" class="btn" style="padding: 6px 12px; font-size: 12px; background: #667eea; color: white; text-decoration: none;">
+                                        Configurer
+                                    </a>
                                     <form action="{{ route('admin.api-keys.toggle', $key->id) }}" method="POST">
                                         @csrf
                                         <button type="submit" class="btn" style="padding: 6px 12px; font-size: 12px; background: #e2e8f0;">

@@ -70,7 +70,7 @@ class OnboardingController extends Controller
 
             $rules = [
                 'email' => 'required|email|max:255',
-                'organization_name' => 'required|string|max:255',
+                'organization_name' => 'nullable|string|max:255',
             ];
 
             // Ajouter la validation reCAPTCHA seulement si les clés sont configurées
@@ -320,10 +320,10 @@ class OnboardingController extends Controller
 
                 // Construire l'URL du dashboard
                 if (config('app.env') === 'local') {
-                    $port = parse_url(config('app.url', 'http://localhost:8000'), PHP_URL_PORT) ?? '8000';
+                    $port = $request->getPort();
                     $dashboardUrl = "http://{$activation->subdomain}.localhost:{$port}/dashboard?auto_login_token={$autoLoginToken}";
                 } else {
-                    $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+                    $baseDomain = config('app.brand_domain');
                     $dashboardUrl = "https://{$activation->subdomain}.{$baseDomain}/dashboard?auto_login_token={$autoLoginToken}";
                 }
 
@@ -488,10 +488,10 @@ class OnboardingController extends Controller
 
                 // Construire l'URL du dashboard avec le token d'authentification automatique
                 if (config('app.env') === 'local') {
-                    $port = parse_url(config('app.url', 'http://localhost:8000'), PHP_URL_PORT) ?? '8000';
+                    $port = $request->getPort();
                     $dashboardUrl = "http://{$subdomain}.localhost:{$port}/dashboard?auto_login_token={$autoLoginToken}";
                 } else {
-                    $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+                    $baseDomain = config('app.brand_domain');
                     $dashboardUrl = "https://{$subdomain}.{$baseDomain}/dashboard?auto_login_token={$autoLoginToken}";
                 }
 
@@ -512,7 +512,7 @@ class OnboardingController extends Controller
                 
                 // Rediriger directement vers le dashboard sur le sous-domaine avec le token
                 // Le middleware Authenticate vérifiera le token et connectera automatiquement l'utilisateur
-                return redirect()->away($dashboardUrl)->with('success', 'Votre compte a été activé avec succès ! Bienvenue sur votre espace Akasi Group.');
+                return redirect()->away($dashboardUrl)->with('success', trans('onboarding.account_activated_success', ['brand' => config('app.brand_name')]));
             } else {
                 throw new \Exception('Erreur lors de l\'activation : données incomplètes');
             }
@@ -603,17 +603,17 @@ class OnboardingController extends Controller
             
             // Construire l'URL complète du dashboard
             if (config('app.env') === 'local') {
-                $port = parse_url(config('app.url', 'http://localhost:8000'), PHP_URL_PORT) ?? '8000';
+                $port = $request->getPort();
                 $dashboardUrl = "http://{$subdomain}.localhost:{$port}/dashboard";
             } else {
-                $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+                $baseDomain = config('app.brand_domain');
                 $dashboardUrl = "https://{$subdomain}.{$baseDomain}/dashboard";
             }
             
             // Forcer la sauvegarde de la session avant redirection
             Session::save();
             
-            return redirect()->away($dashboardUrl)->with('success', 'Votre compte a été activé avec succès ! Bienvenue sur votre espace Akasi Group.');
+            return redirect()->away($dashboardUrl)->with('success', trans('onboarding.account_activated_success', ['brand' => config('app.brand_name')]));
             
         } catch (\Exception $e) {
             Log::error('Erreur lors de la connexion automatique: ' . $e->getMessage());

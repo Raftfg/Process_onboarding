@@ -29,9 +29,23 @@ class AdminDashboardController extends Controller
             ->limit(10)
             ->get();
 
+        // Récupérer les derniers onboardings stateless
+        $recentOnboardings = \App\Models\OnboardingRegistration::with('application')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Récupérer les applications actives
+        $applications = \App\Models\Application::where('is_active', true)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
         return view('admin.dashboard.index', [
             'stats' => $stats,
             'recentTenants' => $recentTenants,
+            'recentOnboardings' => $recentOnboardings,
+            'applications' => $applications,
         ]);
     }
 }

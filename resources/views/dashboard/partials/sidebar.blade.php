@@ -15,7 +15,7 @@
             @endphp
             <img src="{{ $logoUrl }}" alt="{{ $tenantBranding['organization_name'] ?? 'Logo' }}" onerror="this.style.display='none';">
         @endif
-        <h1>{{ $tenantBranding['organization_name'] ?? 'Akasi Group' }}</h1>
+        <h1>{{ $tenantBranding['organization_name'] ?? config('app.brand_name') }}</h1>
     </div>
     
     <nav class="sidebar-nav">

@@ -233,7 +233,7 @@ class Authenticate extends Middleware
                             // Injecter manuellement le message de succès dans la session du sous-domaine
                             // pour compenser la perte de session cross-domain lors du passage de 127.0.0.1 à subdomain.localhost
                             if (!session()->has('success')) {
-                                session()->flash('success', 'Votre compte a été activé avec succès ! Bienvenue sur votre espace Akasi Group.');
+                                session()->flash('success', trans('onboarding.account_activated_success', ['brand' => config('app.brand_name')]));
                                 session()->save();
                             }
 
@@ -244,10 +244,10 @@ class Authenticate extends Middleware
                         } else {
                             // Si on n'est pas sur le dashboard, rediriger vers le dashboard avec le token
                             if (config('app.env') === 'local') {
-                                $port = parse_url(config('app.url', 'http://localhost:8000'), PHP_URL_PORT) ?? '8000';
+                                $port = $request->getPort();
                                 $dashboardUrl = "http://{$subdomain}.localhost:{$port}/dashboard?auto_login_token={$token}";
                             } else {
-                                $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+                                $baseDomain = config('app.brand_domain');
                                 $dashboardUrl = "https://{$subdomain}.{$baseDomain}/dashboard?auto_login_token={$token}";
                             }
                             
@@ -257,7 +257,7 @@ class Authenticate extends Middleware
                                 'subdomain' => $subdomain,
                             ]);
                             
-                            return redirect()->away($dashboardUrl)->with('success', 'Votre compte a été activé avec succès ! Bienvenue sur votre espace Akasi Group.');
+                            return redirect()->away($dashboardUrl)->with('success', trans('onboarding.account_activated_success', ['brand' => config('app.brand_name')]));
                         }
                     } else {
                         \Illuminate\Support\Facades\Log::warning('Utilisateur non trouvé avec le token', [
@@ -416,10 +416,10 @@ class Authenticate extends Middleware
         // Construire l'URL de login avec le sous-domaine dans l'hostname (sans paramètre)
         if ($subdomain) {
             if (config('app.env') === 'local') {
-                $port = parse_url(config('app.url', 'http://localhost:8000'), PHP_URL_PORT) ?? '8000';
+                $port = $request->getPort();
                 return "http://{$subdomain}.localhost:{$port}/login";
             } else {
-                $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+                $baseDomain = config('app.brand_domain');
                 return "https://{$subdomain}.{$baseDomain}/login";
             }
         }

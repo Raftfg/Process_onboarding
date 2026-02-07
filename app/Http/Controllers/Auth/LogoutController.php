@@ -70,10 +70,10 @@ class LogoutController extends Controller
         // Rediriger vers la page de login du sous-domaine si disponible, sinon vers la page d'accueil
         if ($subdomain) {
             if (config('app.env') === 'local') {
-                $port = parse_url(config('app.url', 'http://localhost:8000'), PHP_URL_PORT) ?? '8000';
+                $port = $request->getPort();
                 $loginUrl = "http://{$subdomain}.localhost:{$port}/login";
             } else {
-                $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+                $baseDomain = config('app.brand_domain');
                 $loginUrl = "https://{$subdomain}.{$baseDomain}/login";
             }
             return redirect($loginUrl)->with('success', 'Vous avez été déconnecté avec succès.');

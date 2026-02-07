@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Services\OnboardingService;
 use App\Services\TenantService;
 use App\Services\ActivationService;
+use App\Services\OrganizationNameGenerator;
+use App\Models\ApiKey;
 use App\Mail\ActivationMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -22,79 +24,39 @@ class OnboardingApiController extends Controller
     protected $onboardingService;
     protected $tenantService;
     protected $activationService;
+    protected $organizationNameGenerator;
 
-    public function __construct(OnboardingService $onboardingService, TenantService $tenantService, ActivationService $activationService)
+    public function __construct(OnboardingService $onboardingService, TenantService $tenantService, ActivationService $activationService, OrganizationNameGenerator $organizationNameGenerator)
     {
         $this->onboardingService = $onboardingService;
         $this->tenantService = $tenantService;
         $this->activationService = $activationService;
+        $this->organizationNameGenerator = $organizationNameGenerator;
     }
 
-    #[OA\Post(
-        path: "/api/v1/onboarding/external",
-        summary: "Onboarding externe depuis une application tierce",
-        tags: ["Onboarding Externe"],
-        security: [["ApiKey" => []], ["AppName" => []]],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                properties: [
-                    new OA\Property(property: "email", type: "string", format: "email", example: "admin@secteur-sante.com"),
-                    new OA\Property(property: "organization_name", type: "string", example: "Clinique du Lac"),
-                    new OA\Property(property: "callback_url", type: "string", format: "url", example: "https://votre-app.com/callback"),
-                    new OA\Property(
-                        property: "migrations",
-                        type: "array",
-                        items: new OA\Items(
-                            properties: [
-                                new OA\Property(property: "filename", type: "string", example: "create_patients_table.php"),
-                                new OA\Property(property: "content", type: "string", example: "<?php ... content ... ?>")
-                            ],
-                            type: "object"
-                        )
-                    ),
-                    new OA\Property(property: "metadata", type: "object", example: ["external_id" => "SIH-123456"])
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: "Onboarding externe initié",
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: "success", type: "boolean", example: true),
-                        new OA\Property(property: "message", type: "string", example: "Onboarding externe initié avec succès"),
-                        new OA\Property(
-                            property: "result",
-                            properties: [
-                                new OA\Property(property: "subdomain", type: "string", example: "clinique-du-lac"),
-                                new OA\Property(property: "activation_token", type: "string", example: "act_123456..."),
-                                new OA\Property(property: "url", type: "string", example: "http://clinique-du-lac.localhost:8000")
-                            ],
-                            type: "object"
-                        )
-                    ]
-                )
-            ),
-            new OA\Response(response: 422, description: "Données de validation invalides"),
-            new OA\Response(response: 500, description: "Erreur lors du traitement")
-        ]
-    )]
-
-    /**
-     * Traite l'onboarding de manière asynchrone (nouveau flux)
-     */
+    // Ancien endpoint d'onboarding externe via clés API (déprécié)
     public function processAsync(Request $request)
     {
         try {
             $validated = $request->validate([
                 'email' => 'required|email|max:255',
-                'organization_name' => 'required|string|max:255',
+                'organization_name' => 'nullable|string|max:255',
             ]);
 
             $email = $validated['email'];
-            $organizationName = $validated['organization_name'];
+            $organizationName = $validated['organization_name'] ?? null;
+            
+            // Générer automatiquement le nom d'organisation s'il est vide ou null
+            if (empty(trim($organizationName ?? ''))) {
+                $organizationName = $this->organizationNameGenerator->generate('auto', [
+                    'email' => $email,
+                    'metadata' => [],
+                ]);
+                Log::info('Nom d\'organisation généré automatiquement dans processAsync', [
+                    'email' => $email,
+                    'generated_name' => $organizationName,
+                ]);
+            }
 
             // Générer un identifiant unique pour le suivi
             $sessionId = Session::getId();
@@ -152,11 +114,14 @@ class OnboardingApiController extends Controller
                 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Votre espace Akasi Group a été créé avec succès. Veuillez consulter votre email pour finaliser votre inscription.',
+                    'message' => 'Votre espace a été créé avec succès. Vous allez être redirigé vers votre dashboard.',
                     'session_id' => $sessionId,
                     'result' => [
                         'subdomain' => $result['subdomain'],
                         'email' => $email,
+                        'activation_token' => $result['activation_token'] ?? null,
+                        'auto_login_token' => $result['auto_login_token'] ?? null,
+                        'user_id' => $result['user_id'] ?? null,
                     ]
                 ]);
             } catch (\Exception $e) {
@@ -221,15 +186,26 @@ class OnboardingApiController extends Controller
     public function externalStore(Request $request)
     {
         try {
-            $validated = $request->validate([
+            // Récupérer la clé API depuis le middleware
+            $apiKeyModel = $request->get('api_key_model');
+            
+            // Si pas de clé API (fallback sur env), utiliser les règles par défaut
+            $validationRules = [
                 'email' => 'required|email|max:255',
-                'organization_name' => 'required|string|max:255',
+                'organization_name' => 'nullable|string|max:255', // Optionnel par défaut
                 'callback_url' => 'nullable|url',
-                'migrations' => 'nullable|array',
-                'migrations.*.filename' => 'required_with:migrations|string',
-                'migrations.*.content' => 'required_with:migrations|string',
                 'metadata' => 'nullable|array',
-            ]);
+                'generate_api_key' => 'nullable|boolean',
+            ];
+
+            // Si on a une clé API avec configuration, utiliser ses règles
+            if ($apiKeyModel instanceof ApiKey) {
+                $apiValidationRules = $apiKeyModel->getValidationRules();
+                // Fusionner les règles (les règles de l'API key prennent priorité)
+                $validationRules = array_merge($validationRules, $apiValidationRules);
+            }
+
+            $validated = $request->validate($validationRules);
 
             // Récupérer le nom de l'application source depuis le header
             // Supporte X-App-Name ou X-Source-App
@@ -242,14 +218,53 @@ class OnboardingApiController extends Controller
                 ], 400);
             }
 
-            $result = $this->onboardingService->processExternalOnboarding(
-                $validated['email'],
-                $validated['organization_name'],
-                $validated['callback_url'] ?? null,
-                $validated['migrations'] ?? [],
-                $validated['metadata'] ?? [],
-                $sourceAppName
-            );
+            // Gérer organization_name : générer si non fourni et non requis
+            $organizationName = $validated['organization_name'] ?? null;
+            
+            if (empty($organizationName) && $apiKeyModel instanceof ApiKey) {
+                // Si organization_name n'est pas requis, générer automatiquement
+                if (!$apiKeyModel->shouldRequireOrganizationName()) {
+                    $strategy = $apiKeyModel->getOrganizationNameGenerationStrategy();
+                    $template = $apiKeyModel->getOrganizationNameTemplate();
+                    
+                    $context = [
+                        'email' => $validated['email'],
+                        'metadata' => $validated['metadata'] ?? [],
+                    ];
+                    
+                    if ($strategy === 'custom' && $template) {
+                        $context['template'] = $template;
+                    }
+                    
+                    $organizationName = $this->organizationNameGenerator->generate($strategy, $context);
+                    
+                    Log::info('Nom d\'organisation généré automatiquement', [
+                        'strategy' => $strategy,
+                        'generated_name' => $organizationName,
+                        'email' => $validated['email'],
+                    ]);
+                }
+            }
+
+            // Si toujours pas de nom d'organisation, erreur
+            if (empty($organizationName)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le champ organization_name est requis ou doit être généré automatiquement.'
+                ], 422);
+            }
+
+            // NOTE: Cette méthode est dépréciée. Utiliser OnboardingRegistrationController::register() à la place
+            // Gardée pour rétrocompatibilité temporaire
+            
+            // Rediriger vers la nouvelle API si possible
+            // Pour l'instant, retourner une erreur indiquant d'utiliser la nouvelle API
+            return response()->json([
+                'success' => false,
+                'message' => 'Cet endpoint est déprécié. Utilisez POST /api/v1/onboarding/register avec X-Master-Key.',
+                'new_endpoint' => '/api/v1/onboarding/register',
+                'note' => 'Le microservice ne crée plus les tenants. Il enregistre uniquement les métadonnées et génère les sous-domaines.',
+            ], 410); // 410 Gone
 
             return response()->json([
                 'success' => true,

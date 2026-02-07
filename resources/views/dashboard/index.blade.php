@@ -8,7 +8,7 @@
             Bienvenue, {{ Auth::user()->name ?? 'Administrateur' }} !
         </h1>
         <p style="color: #666; font-size: 16px;">
-            {{ $tenantLayout['welcome_message'] ?? 'Voici un aperçu de votre espace Akasi Group' }}
+            {{ $tenantLayout['welcome_message'] ?? trans('messages.welcome_message') }}
         </p>
     </div>
 

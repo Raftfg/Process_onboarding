@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Espace créé - Akasi Group')
+@section('title', trans('onboarding.confirmation_title') . ' - ' . config('app.brand_name'))
 
 @push('styles')
 <style>
@@ -81,7 +81,7 @@
 
 @section('content')
 <div class="logo">
-    <h1>Akasi Group</h1>
+    <h1>{{ config('app.brand_name') }}</h1>
 </div>
 
 <div class="confirmation-container">
@@ -90,7 +90,7 @@
     <h2 class="confirmation-title">Félicitations !</h2>
     
     <div class="confirmation-message">
-        <p>Votre espace <strong>Akasi Group</strong> a été créé avec succès !</p>
+        <p>Votre espace <strong>{{ config('app.brand_name') }}</strong> a été créé avec succès !</p>
         
         @if(isset($organization_name))
             <p style="margin-top: 15px;">Organisation : <strong>{{ $organization_name }}</strong></p>

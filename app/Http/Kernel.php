@@ -59,6 +59,7 @@ class Kernel extends HttpKernel
      */
     protected $middlewareAliases = [
         'api.auth' => \App\Http\Middleware\ApiAuth::class,
+        'master.key' => \App\Http\Middleware\MasterKeyAuth::class,
         'admin' => \App\Http\Middleware\EnsureAdmin::class,
         'auth' => \App\Http\Middleware\Authenticate::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
@@ -74,5 +75,6 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        'rate.limit.onboarding' => \App\Http\Middleware\RateLimitOnboarding::class,
     ];
 }

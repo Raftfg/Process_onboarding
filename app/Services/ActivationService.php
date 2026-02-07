@@ -142,44 +142,56 @@ class ActivationService
         }
 
         try {
-            // Vérifier si l'utilisateur existe déjà
+            // Vérifier si l'utilisateur existe déjà (créé lors de l'onboarding)
             $existingUser = User::where('email', $activation->email)->first();
             
             if ($existingUser) {
-                throw new \Exception('Un utilisateur avec cet email existe déjà.');
-            }
-
-            // Tenter de récupérer les informations de nom depuis la session d'onboarding
-            $adminName = $activation->organization_name;
-            try {
-                $onboardingSession = OnboardingSession::on('mysql')
-                    ->where('subdomain', $activation->subdomain)
-                    ->where('admin_email', $activation->email)
-                    ->first();
+                // L'utilisateur existe déjà (créé lors de l'onboarding avec mot de passe temporaire)
+                // Mettre à jour le mot de passe avec celui choisi par l'utilisateur
+                $existingUser->update([
+                    'password' => Hash::make($password),
+                    'password_changed_at' => now(),
+                ]);
+                $user = $existingUser;
                 
-                if ($onboardingSession && (!empty($onboardingSession->admin_first_name) || !empty($onboardingSession->admin_last_name))) {
-                    $firstName = $onboardingSession->admin_first_name ?? '';
-                    $lastName = $onboardingSession->admin_last_name ?? '';
-                    $adminName = trim($firstName . ' ' . $lastName);
+                Log::info('Mot de passe mis à jour pour utilisateur existant', [
+                    'email' => $activation->email,
+                    'user_id' => $user->id,
+                ]);
+            } else {
+                // L'utilisateur n'existe pas encore, le créer
+                // Tenter de récupérer les informations de nom depuis la session d'onboarding
+                $adminName = $activation->organization_name;
+                try {
+                    $onboardingSession = OnboardingSession::on('mysql')
+                        ->where('subdomain', $activation->subdomain)
+                        ->where('admin_email', $activation->email)
+                        ->first();
                     
-                    if (empty($adminName)) {
-                        $adminName = $activation->organization_name;
+                    if ($onboardingSession && (!empty($onboardingSession->admin_first_name) || !empty($onboardingSession->admin_last_name))) {
+                        $firstName = $onboardingSession->admin_first_name ?? '';
+                        $lastName = $onboardingSession->admin_last_name ?? '';
+                        $adminName = trim($firstName . ' ' . $lastName);
+                        
+                        if (empty($adminName)) {
+                            $adminName = $activation->organization_name;
+                        }
                     }
+                } catch (\Exception $e) {
+                    Log::warning("Impossible de récupérer le nom admin depuis la session: " . $e->getMessage());
                 }
-            } catch (\Exception $e) {
-                Log::warning("Impossible de récupérer le nom admin depuis la session: " . $e->getMessage());
-            }
 
-            // Créer l'utilisateur administrateur
-            $user = User::create([
-                'name' => $adminName,
-                'email' => $activation->email,
-                'password' => Hash::make($password),
-                'email_verified_at' => now(),
-                'password_changed_at' => now(),
-                'role' => 'admin',
-                'status' => 'active',
-            ]);
+                // Créer l'utilisateur administrateur
+                $user = User::create([
+                    'name' => $adminName,
+                    'email' => $activation->email,
+                    'password' => Hash::make($password),
+                    'email_verified_at' => now(),
+                    'password_changed_at' => now(),
+                    'role' => 'admin',
+                    'status' => 'active',
+                ]);
+            }
 
             // Marquer l'activation comme complétée
             $activation->markAsActivated();

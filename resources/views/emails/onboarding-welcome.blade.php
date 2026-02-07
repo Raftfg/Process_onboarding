@@ -39,27 +39,27 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Bienvenue sur Akasi Group !</h1>
+            <h1>{{ trans('emails.welcome_title', ['brand' => config('app.brand_name')]) }}</h1>
         </div>
         <div class="content">
             <p>Bonjour {{ $adminName }},</p>
             
-            <p>Votre compte Akasi Group a été créé avec succès !</p>
+            <p>{{ trans('emails.welcome_message', ['brand' => config('app.brand_name')]) }}</p>
             
             <p><strong>Votre sous-domaine:</strong> {{ $subdomain }}</p>
             
-            <p>Vous pouvez maintenant accéder à votre espace d'administration en cliquant sur le bouton ci-dessous :</p>
+            <p>{{ trans('emails.welcome_access') }}</p>
             
             <p><strong>Votre email de connexion:</strong> {{ $adminEmail ?? 'Utilisé lors de l\'onboarding' }}</p>
             
-            <a href="{{ $url }}" class="button">Se connecter à mon espace</a>
+            <a href="{{ $url }}" class="button">{{ trans('emails.welcome_button') }}</a>
             
             <p style="margin-top: 20px; font-size: 12px; color: #666;">
                 Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :<br>
                 <a href="{{ $url }}" style="color: #667eea;">{{ $url }}</a>
             </p>
             
-            <p style="margin-top: 30px;">Cordialement,<br>L'équipe Akasi Group</p>
+            <p style="margin-top: 30px;">Cordialement,<br>L'équipe {{ config('app.brand_name') }}</p>
         </div>
     </div>
 </body>

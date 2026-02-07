@@ -41,7 +41,7 @@ class RootDomain
             // Si c'est le domaine principal (3 parties), laisser passer
         } else {
             // En production: vérifier que le host est exactement le domaine de base
-            $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+            $baseDomain = config('app.brand_domain');
             
             // Si le host contient plus de parties que le domaine de base, c'est un sous-domaine
             $baseParts = explode('.', $baseDomain);

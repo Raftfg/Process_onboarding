@@ -1,16 +1,16 @@
 @extends('layouts.app')
 
-@section('title', 'Lien invalide - Akasi Group')
+@section('title', trans('onboarding.activation_invalid') . ' - ' . config('app.brand_name'))
 
 @section('content')
 <div class="logo">
-    <h1>Akasi Group</h1>
+    <h1>{{ config('app.brand_name') }}</h1>
 </div>
 
 <div class="welcome-message" style="text-align: center;">
-    <h2 style="color: #e74c3c;">Lien d'activation invalide</h2>
+    <h2 style="color: #e74c3c;">{{ trans('onboarding.activation_invalid') }}</h2>
     <p style="margin-top: 20px; color: #666;">
-        Le lien d'activation que vous avez utilisé n'est pas valide ou a déjà été utilisé.
+        {{ trans('onboarding.activation_invalid_message') }}
     </p>
     <p style="margin-top: 15px; color: #666;">
         Si vous avez déjà activé votre compte, vous pouvez vous connecter directement.

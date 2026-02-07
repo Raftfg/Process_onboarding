@@ -150,30 +150,30 @@
         <div class="email-container">
             <!-- Header -->
             <div class="email-header">
-                <div class="logo">Akasi Group</div>
-                <p class="tagline">Votre espace de travail ultime</p>
+                <div class="logo">{{ config('app.brand_name') }}</div>
+                <p class="tagline">{{ trans('emails.tagline') }}</p>
             </div>
             
             <!-- Content -->
             <div class="email-content">
-                <h1 class="main-heading">Confirmez votre adresse email</h1>
+                <h1 class="main-heading">{{ trans('emails.activation_title') }}</h1>
                 
                 <p class="main-message">
-                    Créez un mot de passe pour confirmer votre email et continuer à utiliser Akasi Group.
+                    {{ trans('emails.activation_message', ['brand' => config('app.brand_name')]) }}
                 </p>
                 
                 <div class="cta-container">
                     <a href="{{ $activationUrl }}" class="cta-button">
-                        Créer un mot de passe
+                        {{ trans('emails.activation_button') }}
                     </a>
                 </div>
                 
                 <p class="footer-text">
-                    Ce lien est valable pendant {{ $expiresInDays }} jours. Si vous ne l'utilisez pas dans ce délai, vous devrez demander un nouveau lien.
+                    {{ trans('emails.activation_expires', ['days' => $expiresInDays]) }}
                 </p>
                 
                 <p class="footer-text">
-                    Ignorez ce message si vous ne l'avez pas demandé.
+                    {{ trans('emails.activation_ignore') }}
                 </p>
             </div>
         </div>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Administration') - Akasi Group</title>
+    <title>@yield('title', 'Administration') - {{ config('app.brand_name') }}</title>
     
     <style>
         :root {
@@ -222,6 +222,26 @@
             margin-bottom: 30px;
         }
 
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .stat-card {
             background: var(--card-bg);
             padding: 25px;
@@ -263,6 +283,10 @@
                 
                 <a href="{{ route('admin.api-keys.index') }}" class="nav-item {{ request()->routeIs('admin.api-keys.*') ? 'active' : '' }}">
                     Clés API
+                </a>
+                
+                <a href="{{ route('admin.monitoring.onboardings') }}" class="nav-item {{ request()->routeIs('admin.monitoring.*') ? 'active' : '' }}">
+                    Monitoring Onboardings
                 </a>
             </nav>
             

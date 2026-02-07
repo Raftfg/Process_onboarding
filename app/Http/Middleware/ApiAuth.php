@@ -90,6 +90,9 @@ class ApiAuth
                     }
                 }
 
+                // Stocker le modèle ApiKey dans la requête pour utilisation ultérieure
+                $request->merge(['api_key_model' => $apiKeyModel]);
+
                 return true;
             }
         }

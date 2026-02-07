@@ -1,22 +1,32 @@
-# Akasi Onboarding Microservice
+# Microservice Onboarding - Service d'Infrastructure et d'Enregistrement
 
-Ce microservice est une solution d'onboarding **SaaS Multi-tenant** robuste et réutilisable, conçue pour gérer la création dynamique d'espaces clients (tenants) avec isolation complète des données (une base de données par client).
+Ce microservice est un **service d'infrastructure et d'enregistrement universel** qui permet à n'importe quelle application de gérer l'onboarding de ses clients de manière autonome. Le microservice fournit l'infrastructure (bases de données, sous-domaines, DNS, SSL) tandis que chaque application gère ses propres tenants.
+
+## 🚀 Démarrage Rapide
+
+**Nouveau développeur ?** Consultez le **[Guide de Démarrage Rapide](GUIDE_DEMARRAGE_RAPIDE.md)** pour réutiliser ce microservice dans votre projet en **moins de 5 minutes** !
+
+> **Note** : Ce microservice est entièrement configurable via les variables d'environnement. Consultez le [Guide de Personnalisation](GUIDE_PERSONNALISATION.md) pour personnaliser le branding et les traductions.
 
 ## 🚀 Fonctionnalités Clés
 
-- **Multi-tenancy Dynamique** : Isolation totale via des bases de données séparées.
-- **Support Multi-App (Secteur)** : Plusieurs applications peuvent utiliser l'API simultanément avec isolation des noms d'organisation par `X-App-Name`.
-- **Gestion de Sous-domaines** : Chaque tenant accède à son propre espace via `client.votre-domaine.com`.
-- **Flux d'Onboarding Complet** : 
-  - Formulaire d'inscription avec validation reCAPTCHA.
-  - Système d'activation par email sécurisé (tokens à usage unique).
-  - Provisioning automatique de la base de données et des tables nécessaires.
-- **Onboarding Externe & Migrations** : Capacité à injecter des migrations SQL personnalisées lors de la création d'un tenant via l'API.
-- **Tableau de Bord Administrateur (Super Admin)** : Pour gérer les tenants, surveiller l'activité et générer des clés API.
-- **API Publique** : Permet l'intégration de l'onboarding dans d'autres applications.
-- **Système de Webhooks** : Notifications en temps réel (avec signature HMAC) lors des événements d'onboarding.
-- **Personnalisation (White-label)** : Les clients peuvent personnaliser leur logo, leurs couleurs et leur menu depuis leur propre dashboard.
-- **Design Minimaliste** : Interface moderne, épurée et sans surcharge visuelle.
+### Service d'Infrastructure
+- **Enregistrement Self-Service** : Les applications peuvent s'enregistrer elles-mêmes via l'API
+- **Création de Bases de Données** : Le microservice crée et gère une base de données MySQL pour chaque application
+- **Génération de Sous-domaines** : Génération automatique de sous-domaines uniques
+- **Configuration DNS/SSL** : Configuration automatique de l'infrastructure réseau
+- **Génération de Clés API** : Génération optionnelle de clés API pour les requêtes spécifiques
+
+### API RESTful Stateless
+- **API Sans État** : Pas de sessions, chaque requête est indépendante
+- **Authentification Flexible** : Support master_key et clés API
+- **Validation Dynamique** : Règles de validation configurables par clé API
+- **Génération Automatique** : Génération automatique de données manquantes (organization_name, etc.)
+
+### Gestion Multi-Application
+- **Isolation par Application** : Chaque application a sa propre base de données
+- **Self-Service** : Les applications gèrent leurs propres clés API
+- **Flexibilité Maximale** : Configuration personnalisable par application
 
 ## 🛠 Prérequis
 
@@ -63,12 +73,25 @@ Assurez-vous que votre serveur web ou votre DNS redirige `*.votre-domaine.com` v
 
 ## 🔌 API Publique
 
-### Authentification API
-Toutes les requêtes API doivent inclure les headers :
-- `X-API-Key: votre_cle_api`
-- `X-App-Name: nom_de_votre_app` (Requis pour l'isolation)
+### Enregistrement d'Application (Self-Service)
+```
+POST /api/v1/applications/register
+→ Crée l'application et sa base de données
+→ Retourne : app_id, master_key, db_credentials
+```
 
-*(Générez vos clés et configurez vos apps dans le Dashboard Super Admin)*
+### Onboarding (Avec master_key)
+```
+POST /api/v1/onboarding/register
+Headers: X-Master-Key: {master_key}
+→ Enregistre un onboarding
+→ Génère sous-domaine, configure DNS/SSL
+→ Retourne : uuid, subdomain, api_key (si généré)
+```
+
+### Authentification
+- **Master Key** : Pour gérer les clés API et les onboardings
+- **API Key** : Pour les requêtes spécifiques (si générée)
 
 ### 📖 Documentation Interactive (Swagger)
 Une documentation interactive complète et testable est disponible :
@@ -107,7 +130,19 @@ Le service envoie un JSON signé vers vos URLs enregistrées lors de la complét
 
 ## 🎨 Personnalisation
 
-Le système de "Branding" permet de modifier :
+### Branding et Configuration
+
+Le microservice est entièrement configurable via les variables d'environnement :
+
+- **Branding** : Nom de la marque, domaine, préfixe de base de données
+- **Emails** : Nom et adresse de l'expéditeur
+- **Traductions** : Support multi-langues (français et anglais inclus)
+
+Consultez le [Guide de Personnalisation](GUIDE_PERSONNALISATION.md) pour plus de détails.
+
+### Personnalisation par Tenant
+
+Le système de "Branding" permet aux tenants de modifier :
 - **Couleurs** : Primaire, secondaire, accent et fond.
 - **Interface** : Logo personnalisé et message de bienvenue.
 - **Navigation** : Réorganisation et renommage des menus de la sidebar.
@@ -119,5 +154,16 @@ Le système de "Branding" permet de modifier :
 - Validation reCAPTCHA sur les formulaires publics.
 - Tokens d'auto-login à usage unique et courte durée.
 
----
-© 2026 Akasi Group. Tous droits réservés.
+## 📚 Documentation unique pour intégration
+
+Pour toute intégration de ce microservice dans une application externe, référez-vous **uniquement** à :
+
+- **[Guide d’Intégration Onboarding Stateless](GUIDE_INTEGRATION_ONBOARDING_STATELESS.md)**  
+  Ce document explique :
+  - le rôle du microservice,
+  - les endpoints à utiliser,
+  - le flux complet (`start`, `provision`, `status`),
+  - les responsabilités côté microservice vs côté application cliente,
+  - les exemples de requêtes/réponses et les bonnes pratiques.
+
+> Les autres fichiers `.md` présents dans le dépôt sont à considérer comme documents internes ou historiques. Pour les équipes externes, le point d’entrée unique est **GUIDE_INTEGRATION_ONBOARDING_STATELESS.md**.

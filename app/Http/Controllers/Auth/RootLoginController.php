@@ -32,7 +32,7 @@ class RootLoginController extends Controller
                 $isSubdomain = true;
             }
         } else {
-            $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+            $baseDomain = config('app.brand_domain');
             $baseParts = explode('.', $baseDomain);
             if (count($parts) > count($baseParts)) {
                 $isSubdomain = true;
@@ -151,10 +151,10 @@ class RootLoginController extends Controller
         
         // Construire l'URL de login du sous-domaine
         if (config('app.env') === 'local') {
-            $port = parse_url(config('app.url', 'http://localhost:8000'), PHP_URL_PORT) ?? '8000';
+            $port = $request->getPort();
             $loginUrl = "http://{$subdomain}.localhost:{$port}/login";
         } else {
-            $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+            $baseDomain = config('app.brand_domain');
             $loginUrl = "https://{$subdomain}.{$baseDomain}/login";
         }
         

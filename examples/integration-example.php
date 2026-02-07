@@ -1,12 +1,17 @@
 <?php
 
 /**
- * Exemple d'intégration du microservice d'onboarding Akasi Group
+ * Exemple d'intégration du microservice d'onboarding
  * 
  * Ce fichier montre comment intégrer le microservice dans votre application PHP
+ * 
+ * Configuration requise :
+ * - ONBOARDING_API_URL : URL de base de l'API (ex: https://onboarding.votre-domaine.com/api)
+ * - ONBOARDING_API_KEY : Votre clé API
+ * - ONBOARDING_APP_NAME : Nom de votre application
  */
 
-class AkasiGroupOnboardingClient
+class OnboardingClient
 {
     private $apiUrl;
     private $apiKey;
@@ -146,7 +151,12 @@ class AkasiGroupOnboardingClient
 // Exemple d'utilisation
 try {
     // Initialiser le client
-    $client = new AkasiGroupOnboardingClient(
+    // Utilisez les variables d'environnement pour la configuration
+    $apiUrl = getenv('ONBOARDING_API_URL') ?: 'https://onboarding.votre-domaine.com/api';
+    $apiKey = getenv('ONBOARDING_API_KEY') ?: 'YOUR_API_KEY_HERE';
+    $appName = getenv('ONBOARDING_APP_NAME') ?: 'votre-nom-app';
+    
+    $client = new OnboardingClient(
         'https://onboarding.akasigroup.com/api',
         'YOUR_API_KEY_HERE'
     );

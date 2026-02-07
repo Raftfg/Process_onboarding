@@ -142,10 +142,11 @@ class LoginController extends Controller
 
             // Rediriger vers le dashboard avec le sous-domaine dans l'URL (sans paramètre subdomain)
             if (config('app.env') === 'local' && $subdomain) {
-                $redirectUrl = "http://{$subdomain}.localhost:8000/dashboard";
+                $port = $request->getPort();
+                $redirectUrl = "http://{$subdomain}.localhost:{$port}/dashboard";
             } else {
                 if ($subdomain) {
-                    $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+                    $baseDomain = config('app.brand_domain');
                     $redirectUrl = "https://{$subdomain}.{$baseDomain}/dashboard";
                 } else {
                     $redirectUrl = route('dashboard');

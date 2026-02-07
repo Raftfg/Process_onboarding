@@ -19,7 +19,7 @@ return [
         ],
     ],
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Akasi Group'),
+        'address' => env('MAIL_FROM_ADDRESS', env('EMAIL_FROM_ADDRESS', 'hello@example.com')),
+        'name' => env('MAIL_FROM_NAME', env('EMAIL_FROM_NAME', config('app.brand_name'))),
     ],
 ];

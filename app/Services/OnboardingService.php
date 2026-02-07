@@ -59,11 +59,24 @@ class OnboardingService
      * Traite l'onboarding avec seulement email et organisation
      * Ne crée pas l'utilisateur admin (sera fait lors de l'activation)
      */
-    public function processOnboarding(string $email, string $organizationName, array $metadata = [], string $sourceAppName = null): array
+    public function processOnboarding(string $email, ?string $organizationName = null, array $metadata = [], string $sourceAppName = null): array
     {
         try {
             // Vérifier que l'email est unique
             $this->validateEmailUnique($email);
+            
+            // Générer automatiquement le nom d'organisation s'il est vide ou null
+            if (empty(trim($organizationName ?? ''))) {
+                $organizationNameGenerator = app(OrganizationNameGenerator::class);
+                $organizationName = $organizationNameGenerator->generate('auto', [
+                    'email' => $email,
+                    'metadata' => $metadata,
+                ]);
+                Log::info('Nom d\'organisation généré automatiquement', [
+                    'email' => $email,
+                    'generated_name' => $organizationName,
+                ]);
+            }
             
             // Vérifier que le nom de l'organisation est unique (SCOPÉ par Application)
             $this->validateOrganizationNameUnique($organizationName, $sourceAppName);
@@ -96,17 +109,47 @@ class OnboardingService
             // Initialiser les settings de personnalisation par défaut
             $this->initializeTenantSettings($organizationName);
             
+            // Créer l'utilisateur admin automatiquement avec un mot de passe temporaire
+            $tempPassword = Str::random(32); // Mot de passe temporaire sécurisé
+            $user = User::create([
+                'name' => $organizationName,
+                'email' => $email,
+                'password' => Hash::make($tempPassword),
+                'email_verified_at' => now(),
+                'password_changed_at' => null, // null = mot de passe temporaire, à changer
+                'role' => 'admin',
+                'status' => 'active',
+            ]);
+            
+            Log::info('Utilisateur créé automatiquement lors de l\'onboarding', [
+                'email' => $email,
+                'user_id' => $user->id,
+                'subdomain' => $subdomain,
+            ]);
+            
             // Revenir à la base principale
             Config::set('database.default', 'mysql');
             DB::purge('tenant');
             
-            // Créer le token d'activation
+            // Créer le token d'activation (pour permettre le changement de mot de passe via email)
             $activationToken = $this->activationService->createActivationToken(
                 $email,
                 $organizationName,
                 $subdomain,
                 $databaseName
             );
+            
+            // Créer un token d'authentification automatique pour la connexion immédiate
+            $autoLoginToken = Str::random(64);
+            DB::connection('mysql')->table('auto_login_tokens')->insert([
+                'token' => $autoLoginToken,
+                'user_id' => $user->id,
+                'subdomain' => $subdomain,
+                'database_name' => $databaseName,
+                'expires_at' => now()->addMinutes(30),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
             
             $result = [
                 'subdomain' => $subdomain,
@@ -115,6 +158,8 @@ class OnboardingService
                 'email' => $email,
                 'organization_name' => $organizationName,
                 'activation_token' => $activationToken,
+                'auto_login_token' => $autoLoginToken,
+                'user_id' => $user->id,
                 'metadata' => $metadata,
             ];
 
@@ -375,7 +420,7 @@ class OnboardingService
      */
     protected function createUniqueDatabase(string $subdomain): string
     {
-        $baseDatabaseName = 'akasigroup_' . $subdomain;
+        $baseDatabaseName = config('app.database_prefix') . $subdomain;
         $databaseName = $baseDatabaseName;
         $counter = 1;
         $maxAttempts = 100;
@@ -433,7 +478,7 @@ class OnboardingService
 
     protected function createSubdomain(string $subdomain): void
     {
-        $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+        $baseDomain = config('app.brand_domain');
         $webRoot = config('app.subdomain_web_root', '/var/www/html');
         
         // Dans un environnement de production, vous devriez:
@@ -453,11 +498,12 @@ class OnboardingService
         // En développement local, utiliser le format sous-domaine.localhost:8000
         // localhost fonctionne nativement sans configuration supplémentaire
         if (config('app.env') === 'local') {
-            return "http://{$subdomain}.localhost:8000";
+            $port = request()->getPort();
+            return "http://{$subdomain}.localhost:{$port}";
         }
         
         // En production, utiliser le vrai sous-domaine
-        $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+        $baseDomain = config('app.brand_domain');
         return "https://{$subdomain}.{$baseDomain}";
     }
 
@@ -488,13 +534,23 @@ class OnboardingService
                 CREATE TABLE IF NOT EXISTS `users` (
                     `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
                     `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `first_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                    `last_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
                     `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
                     `email_verified_at` timestamp NULL DEFAULT NULL,
                     `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+                    `password_changed_at` timestamp NULL DEFAULT NULL,
                     `remember_token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
                     `role` enum('admin','user') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'user',
                     `avatar` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
                     `phone` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                    `company` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                    `address` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                    `city` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                    `postal_code` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                    `country` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                    `job_title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                    `bio` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
                     `last_login_at` timestamp NULL DEFAULT NULL,
                     `status` enum('active','inactive') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
                     `created_at` timestamp NULL DEFAULT NULL,
@@ -529,6 +585,33 @@ class OnboardingService
             }
             if (!in_array('password_changed_at', $columnNames)) {
                 $connection->statement("ALTER TABLE `users` ADD COLUMN `password_changed_at` timestamp NULL DEFAULT NULL AFTER `password`");
+            }
+            if (!in_array('first_name', $columnNames)) {
+                $connection->statement("ALTER TABLE `users` ADD COLUMN `first_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `name`");
+            }
+            if (!in_array('last_name', $columnNames)) {
+                $connection->statement("ALTER TABLE `users` ADD COLUMN `last_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `first_name`");
+            }
+            if (!in_array('company', $columnNames)) {
+                $connection->statement("ALTER TABLE `users` ADD COLUMN `company` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `phone`");
+            }
+            if (!in_array('address', $columnNames)) {
+                $connection->statement("ALTER TABLE `users` ADD COLUMN `address` text COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `company`");
+            }
+            if (!in_array('city', $columnNames)) {
+                $connection->statement("ALTER TABLE `users` ADD COLUMN `city` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `address`");
+            }
+            if (!in_array('postal_code', $columnNames)) {
+                $connection->statement("ALTER TABLE `users` ADD COLUMN `postal_code` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `city`");
+            }
+            if (!in_array('country', $columnNames)) {
+                $connection->statement("ALTER TABLE `users` ADD COLUMN `country` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `postal_code`");
+            }
+            if (!in_array('job_title', $columnNames)) {
+                $connection->statement("ALTER TABLE `users` ADD COLUMN `job_title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `country`");
+            }
+            if (!in_array('bio', $columnNames)) {
+                $connection->statement("ALTER TABLE `users` ADD COLUMN `bio` text COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `job_title`");
             }
             
             // Créer la table activities
@@ -607,10 +690,10 @@ class OnboardingService
         try {
             // Construire l'URL de login au lieu de l'URL de base
             if (config('app.env') === 'local') {
-                $port = parse_url(config('app.url', 'http://localhost:8000'), PHP_URL_PORT) ?? '8000';
+                $port = request()->getPort();
                 $loginUrl = "http://{$subdomain}.localhost:{$port}/login";
             } else {
-                $baseDomain = config('app.subdomain_base_domain', 'akasigroup.local');
+                $baseDomain = config('app.brand_domain');
                 $loginUrl = "https://{$subdomain}.{$baseDomain}/login";
             }
             
