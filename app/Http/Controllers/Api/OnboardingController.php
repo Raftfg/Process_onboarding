@@ -62,19 +62,6 @@ class OnboardingController extends Controller
                         new OA\Property(property: "email", type: "string", format: "email"),
                         new OA\Property(property: "organization_name", type: "string", nullable: true),
                         new OA\Property(property: "onboarding_status", type: "string", example: "pending"),
-                        new OA\Property(
-                            property: "metadata",
-                            type: "object",
-                            properties: [
-                                new OA\Property(property: "created_at", type: "string", format: "date-time"),
-                                new OA\Property(property: "updated_at", type: "string", format: "date-time"),
-                                new OA\Property(property: "dns_configured", type: "boolean", example: false),
-                                new OA\Property(property: "ssl_configured", type: "boolean", example: false),
-                                new OA\Property(property: "infrastructure_status", type: "string", example: "pending"),
-                                new OA\Property(property: "api_key_generated", type: "boolean", example: false),
-                                new OA\Property(property: "provisioning_attempts", type: "integer", example: 0),
-                            ]
-                        ),
                     ]
                 )
             ),
@@ -106,17 +93,6 @@ class OnboardingController extends Controller
                 $validated['organization_name'] ?? null
             );
 
-            // Construire les metadata enrichies
-            $metadata = [
-                'created_at' => $registration->created_at->toIso8601String(),
-                'updated_at' => $registration->updated_at->toIso8601String(),
-                'dns_configured' => $registration->dns_configured,
-                'ssl_configured' => $registration->ssl_configured,
-                'infrastructure_status' => $this->getInfrastructureStatus($registration),
-                'api_key_generated' => !empty($registration->api_key),
-                'provisioning_attempts' => $registration->provisioning_attempts ?? 0,
-            ];
-
             // Générer l'URL complète du sous-domaine pour l'application cliente
             $subdomainService = app(\App\Services\SubdomainService::class);
             $fullUrl = $subdomainService->getSubdomainUrl($registration->subdomain);
@@ -130,7 +106,6 @@ class OnboardingController extends Controller
                 'email'             => $registration->email,
                 'organization_name' => $registration->organization_name,
                 'onboarding_status' => $registration->status,
-                'metadata'          => $metadata,
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([

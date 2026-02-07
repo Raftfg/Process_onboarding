@@ -233,4 +233,74 @@ class ApplicationRegistrationController extends Controller
             'apiKeys' => $apiKeys,
         ]);
     }
+
+    /**
+     * Crée une nouvelle clé API via l'interface web
+     */
+    public function storeApiKey(Request $request, string $appId)
+    {
+        $application = Application::where('app_id', $appId)->first();
+        
+        if (!$application) {
+            return redirect()->route('applications.index')
+                ->with('error', 'Application non trouvée.');
+        }
+
+        // Valider la master key
+        $masterKey = $request->input('master_key');
+        if (!$masterKey) {
+            return redirect()->route('applications.api-keys', $appId)
+                ->withErrors(['master_key' => 'La master key est requise.'])
+                ->withInput();
+        }
+
+        $validatedApplication = Application::validateMasterKey($masterKey);
+
+        if (!$validatedApplication || $validatedApplication->id !== $application->id) {
+            return redirect()->route('applications.api-keys', $appId)
+                ->withErrors(['master_key' => 'Master key invalide. Veuillez vérifier votre master key.'])
+                ->withInput();
+        }
+
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'rate_limit' => 'nullable|integer|min:1|max:10000',
+                'expires_at' => 'nullable|date|after:now',
+            ]);
+
+            // Générer la clé API
+            $result = \App\Models\ApiKey::generate($validated['name'], [
+                'app_name' => $application->app_name,
+                'application_id' => $application->id,
+                'rate_limit' => $validated['rate_limit'] ?? 100,
+                'expires_at' => $validated['expires_at'] ?? null,
+            ]);
+
+            Log::info('Nouvelle clé API créée via interface web', [
+                'app_id' => $application->app_id,
+                'app_name' => $application->app_name,
+                'key_id' => $result['id'],
+                'key_prefix' => $result['key_prefix'],
+            ]);
+
+            return redirect()->route('applications.api-keys', $appId)
+                ->with('new_api_key', $result['key'])
+                ->with('success', 'Clé API créée avec succès !');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->route('applications.api-keys', $appId)
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la création de clé API via interface web: ' . $e->getMessage(), [
+                'app_id' => $application->app_id,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->route('applications.api-keys', $appId)
+                ->withErrors(['error' => 'Une erreur est survenue lors de la création de la clé API.'])
+                ->withInput();
+        }
+    }
 }

@@ -1042,39 +1042,6 @@
                                         "onboarding_status": {
                                             "type": "string",
                                             "example": "pending"
-                                        },
-                                        "metadata": {
-                                            "properties": {
-                                                "created_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                },
-                                                "updated_at": {
-                                                    "type": "string",
-                                                    "format": "date-time"
-                                                },
-                                                "dns_configured": {
-                                                    "type": "boolean",
-                                                    "example": false
-                                                },
-                                                "ssl_configured": {
-                                                    "type": "boolean",
-                                                    "example": false
-                                                },
-                                                "infrastructure_status": {
-                                                    "type": "string",
-                                                    "example": "pending"
-                                                },
-                                                "api_key_generated": {
-                                                    "type": "boolean",
-                                                    "example": false
-                                                },
-                                                "provisioning_attempts": {
-                                                    "type": "integer",
-                                                    "example": 0
-                                                }
-                                            },
-                                            "type": "object"
                                         }
                                     },
                                     "type": "object"

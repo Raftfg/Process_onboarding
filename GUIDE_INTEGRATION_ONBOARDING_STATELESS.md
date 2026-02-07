@@ -116,52 +116,19 @@ Content-Type: application/json
 }
 ```
 
-3. Réponse typique (enrichie avec metadata) :
+3. Réponse typique :
 
 ```json
 {
   "success": true,
   "uuid": "550e8400-e29b-41d4-a716-446655440000",
   "subdomain": "clinique-du-lac",
+  "full_domain": "clinique-du-lac.akasigroup.local",
+  "url": "https://clinique-du-lac.akasigroup.local",
   "email": "admin@example.com",
   "organization_name": "Clinique du Lac",
-  "onboarding_status": "pending",
-  "metadata": {
-    "created_at": "2026-02-07T10:30:00Z",
-    "updated_at": "2026-02-07T10:30:00Z",
-    "dns_configured": false,
-    "ssl_configured": false,
-    "infrastructure_status": "pending",
-    "api_key_generated": false,
-    "provisioning_attempts": 0
-  }
+  "onboarding_status": "pending"
 }
-```
-
-> **💡 Comment les metadata sont gérées :**
-> 
-> Les metadata sont **construites dynamiquement** dans le contrôleur (`OnboardingController`) à partir des colonnes de la table `onboarding_registrations`. Elles ne sont **pas stockées en JSON** pour garantir la cohérence et éviter la duplication.
-> 
-> **Source des données :**
-> 
-> | Champ metadata | Source dans la DB | Mise à jour |
-> |----------------|-------------------|-------------|
-> | `created_at` | Colonne `created_at` (timestamp Laravel) | Automatique lors de la création |
-> | `updated_at` | Colonne `updated_at` (timestamp Laravel) | Automatique à chaque `save()` |
-> | `dns_configured` | Colonne `dns_configured` (boolean) | Mis à jour dans `OnboardingOrchestratorService::provision()` |
-> | `ssl_configured` | Colonne `ssl_configured` (boolean) | Mis à jour dans `OnboardingOrchestratorService::provision()` |
-> | `infrastructure_status` | **Calculé** via `getInfrastructureStatus()` | Calculé à la volée : `"pending"` (DNS+SSL=false), `"partial"` (un seul true), `"ready"` (DNS+SSL=true) |
-> | `api_key_generated` | **Dérivé** de `!empty($registration->api_key)` | Dérivé de la colonne `api_key` |
-> | `provisioning_attempts` | Colonne `provisioning_attempts` (integer) | Incrémenté dans `OnboardingOrchestratorService::provision()` (sauf si idempotent) |
-> 
-> **Flux de mise à jour :**
-> 1. Lors de `/start` : Les metadata reflètent l'état initial (`pending`, `dns_configured=false`, `ssl_configured=false`, `provisioning_attempts=0`)
-> 2. Lors de `/provision` : 
->    - `provisioning_attempts` est incrémenté (sauf si déjà provisionné = idempotent)
->    - `dns_configured` et `ssl_configured` sont mis à jour selon le résultat de `configureDNS()` et `configureSSL()`
->    - `infrastructure_status` est recalculé automatiquement
->    - `api_key_generated` reflète la présence d'une clé API
-> 3. Les metadata sont toujours **à jour** car elles sont construites à partir des colonnes réelles à chaque requête
 ```
 
 4. Vous stockez au minimum :

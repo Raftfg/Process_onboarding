@@ -223,4 +223,5 @@ Route::prefix('applications')->group(function () {
     Route::post('/register', [App\Http\Controllers\Web\ApplicationRegistrationController::class, 'register'])->name('applications.register');
     Route::get('/{app_id}/dashboard', [App\Http\Controllers\Web\ApplicationRegistrationController::class, 'dashboard'])->name('applications.dashboard');
     Route::get('/{app_id}/api-keys', [App\Http\Controllers\Web\ApplicationRegistrationController::class, 'apiKeys'])->name('applications.api-keys');
+    Route::post('/{app_id}/api-keys', [App\Http\Controllers\Web\ApplicationRegistrationController::class, 'storeApiKey'])->name('applications.api-keys.store');
 });

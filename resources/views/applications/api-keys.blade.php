@@ -129,12 +129,79 @@
 
         <div class="card">
             <h2>Créer une nouvelle clé API</h2>
-            <p>Pour créer une nouvelle clé API, utilisez l'endpoint API :</p>
-            <code>POST /api/v1/applications/{{ $application->app_id }}/api-keys</code>
-            <p style="margin-top: 10px; font-size: 14px; color: #666;">
-                Vous devez utiliser votre master key dans le header <code>X-Master-Key</code>
-            </p>
+            
+            @if(session('new_api_key'))
+                <div class="alert alert-success" style="margin-bottom: 20px;">
+                    <strong>✅ Clé API créée avec succès !</strong>
+                    <p style="margin-top: 10px;">
+                        <strong>⚠️ IMPORTANT :</strong> Sauvegardez cette clé immédiatement, elle ne sera plus jamais affichée.
+                    </p>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px; word-break: break-all;">
+                        <code style="font-size: 14px;">{{ session('new_api_key') }}</code>
+                    </div>
+                    <button onclick="copyToClipboard('{{ session('new_api_key') }}')" class="btn" style="margin-top: 10px;">📋 Copier la clé</button>
+                </div>
+            @endif
+
+            @if($errors->any())
+                <div class="alert alert-error" style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                    <ul style="margin: 0; padding-left: 20px;">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <form id="createApiKeyForm" method="POST" action="{{ route('applications.api-keys.store', $application->app_id) }}" style="display: grid; gap: 15px;">
+                @csrf
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Nom de la clé *</label>
+                    <input type="text" name="name" required placeholder="Ex: Production Key, Development Key" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    <p style="font-size: 12px; color: #666; margin-top: 5px;">Un nom descriptif pour identifier cette clé</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Rate Limit (req/min)</label>
+                        <input type="number" name="rate_limit" value="100" min="1" max="10000" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">Limite de requêtes par minute (1-10000)</p>
+                    </div>
+
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Date d'expiration (optionnel)</label>
+                        <input type="date" name="expires_at" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">La clé expirera automatiquement à cette date</p>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Master Key *</label>
+                    <input type="password" name="master_key" required placeholder="Votre master key (mk_live_...)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    <p style="font-size: 12px; color: #666; margin-top: 5px;">Votre master key est nécessaire pour créer une clé API</p>
+                </div>
+
+                <button type="submit" class="btn" style="padding: 12px 24px; font-size: 16px;">Créer la clé API</button>
+            </form>
+
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                <p style="font-size: 14px; color: #666; margin: 0;">
+                    <strong>💡 Alternative :</strong> Vous pouvez aussi créer une clé API via l'API REST :
+                    <code style="display: block; margin-top: 5px;">POST /api/v1/applications/{{ $application->app_id }}/api-keys</code>
+                </p>
+            </div>
         </div>
     </div>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                alert('Clé API copiée dans le presse-papiers !');
+            }, function(err) {
+                alert('Erreur lors de la copie. Veuillez copier manuellement.');
+            });
+        }
+    </script>
 </body>
 </html>
