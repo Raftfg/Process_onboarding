@@ -34,6 +34,8 @@ class User extends Authenticatable
         'last_login_at',
         'status',
         'password_changed_at',
+        'onboarding_questionnaire',
+        'onboarding_completed_at',
     ];
 
     /**
@@ -58,6 +60,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'last_login_at' => 'datetime',
             'password_changed_at' => 'datetime',
+            'onboarding_questionnaire' => 'array',
+            'onboarding_completed_at' => 'datetime',
         ];
     }
 

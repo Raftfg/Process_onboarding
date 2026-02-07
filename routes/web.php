@@ -48,6 +48,9 @@ Route::get('/', function (Request $request) {
 
 // Nouvelles routes d'onboarding (nouveau flux)
 Route::get('/onboarding/start', [OnboardingController::class, 'showInitialForm'])->name('onboarding.start');
+Route::post('/onboarding/questionnaire/prepare', [OnboardingController::class, 'prepareQuestionnaire'])->name('onboarding.questionnaire.prepare');
+Route::get('/onboarding/questionnaire', [OnboardingController::class, 'showQuestionnaire'])->name('onboarding.questionnaire');
+Route::post('/onboarding/questionnaire/save', [OnboardingController::class, 'saveQuestionnaire'])->name('onboarding.questionnaire.save');
 Route::post('/onboarding/start', [OnboardingController::class, 'storeInitialData'])->name('onboarding.storeInitialData');
 Route::get('/onboarding/loading', [OnboardingController::class, 'showLoading'])->name('onboarding.loading');
 Route::get('/onboarding/confirmation', [OnboardingController::class, 'showConfirmation'])->name('onboarding.confirmation');
@@ -94,6 +97,9 @@ Route::middleware(['auth'])->group(function () {
     // Activités
     Route::get('/dashboard/activities', [App\Http\Controllers\Dashboard\ActivityController::class, 'index'])->name('dashboard.activities');
     Route::post('/dashboard/activities', [App\Http\Controllers\Dashboard\ActivityController::class, 'store'])->name('dashboard.activities.store');
+    
+    // Renvoyer l'email d'activation
+    Route::post('/dashboard/resend-activation-email', [App\Http\Controllers\DashboardController::class, 'resendActivationEmail'])->name('dashboard.resend-activation-email');
     
     // Notifications
     Route::get('/dashboard/notifications', [App\Http\Controllers\Dashboard\NotificationController::class, 'index'])->name('dashboard.notifications');

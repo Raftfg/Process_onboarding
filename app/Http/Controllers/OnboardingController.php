@@ -175,6 +175,106 @@ class OnboardingController extends Controller
     }
 
     /**
+     * Affiche le questionnaire multi-étapes
+     */
+    public function showQuestionnaire(Request $request)
+    {
+        // Récupérer les données depuis la session
+        $subdomain = Session::get('questionnaire_subdomain');
+        $autoLoginToken = Session::get('questionnaire_auto_login_token');
+        $email = Session::get('questionnaire_email');
+
+        if (!$subdomain) {
+            Log::warning('Tentative d\'accès au questionnaire sans données');
+            return redirect()->route('onboarding.start')
+                ->with('error', 'Veuillez compléter l\'onboarding pour accéder au questionnaire.');
+        }
+
+        return view('onboarding.questionnaire', [
+            'subdomain' => $subdomain,
+            'auto_login_token' => $autoLoginToken,
+            'email' => $email,
+        ]);
+    }
+
+    /**
+     * Prépare les données pour le questionnaire
+     */
+    public function prepareQuestionnaire(Request $request)
+    {
+        $validated = $request->validate([
+            'subdomain' => 'required|string',
+            'auto_login_token' => 'nullable|string',
+            'email' => 'required|email',
+            'organization_name' => 'nullable|string',
+        ]);
+
+        // Stocker les données en session pour le questionnaire
+        Session::put('questionnaire_subdomain', $validated['subdomain']);
+        Session::put('questionnaire_auto_login_token', $validated['auto_login_token'] ?? null);
+        Session::put('questionnaire_email', $validated['email']);
+        Session::put('questionnaire_organization_name', $validated['organization_name'] ?? null);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Données préparées pour le questionnaire',
+        ]);
+    }
+
+    /**
+     * Sauvegarde les réponses du questionnaire
+     */
+    public function saveQuestionnaire(Request $request)
+    {
+        $validated = $request->validate([
+            'answers' => 'nullable|array',
+            'subdomain' => 'nullable|string',
+            'email' => 'nullable|email',
+        ]);
+
+        $subdomain = $validated['subdomain'] ?? Session::get('questionnaire_subdomain');
+        $email = $validated['email'] ?? Session::get('questionnaire_email');
+        $answers = $validated['answers'] ?? [];
+
+        // Sauvegarder les réponses dans la base de données du tenant (optionnel)
+        if ($subdomain && !empty($answers)) {
+            try {
+                // Basculer vers la base du tenant
+                $tenantService = app(\App\Services\TenantService::class);
+                $databaseName = $tenantService->getTenantDatabase($subdomain);
+
+                if ($databaseName) {
+                    $tenantService->switchToTenantDatabase($databaseName);
+
+                    // Sauvegarder dans la table users (mise à jour du profil)
+                    $user = \App\Models\User::where('email', $email)->first();
+                    if ($user) {
+                        $user->update([
+                            'onboarding_questionnaire' => $answers, // Laravel cast automatiquement en JSON
+                            'onboarding_completed_at' => now(),
+                        ]);
+                    }
+
+                    // Revenir à la base principale
+                    \Illuminate\Support\Facades\Config::set('database.default', 'mysql');
+                    \Illuminate\Support\Facades\DB::purge('tenant');
+                }
+            } catch (\Exception $e) {
+                Log::warning('Erreur lors de la sauvegarde du questionnaire: ' . $e->getMessage());
+                // Ne pas bloquer la redirection en cas d'erreur
+            }
+        }
+
+        // Nettoyer la session
+        Session::forget(['questionnaire_subdomain', 'questionnaire_auto_login_token', 'questionnaire_email', 'questionnaire_organization_name']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Questionnaire sauvegardé',
+        ]);
+    }
+
+    /**
      * Affiche la page de chargement
      */
     public function showLoading(Request $request)

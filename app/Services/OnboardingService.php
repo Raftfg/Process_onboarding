@@ -551,6 +551,8 @@ class OnboardingService
                     `country` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
                     `job_title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
                     `bio` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                    `onboarding_questionnaire` json DEFAULT NULL,
+                    `onboarding_completed_at` timestamp NULL DEFAULT NULL,
                     `last_login_at` timestamp NULL DEFAULT NULL,
                     `status` enum('active','inactive') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
                     `created_at` timestamp NULL DEFAULT NULL,
@@ -612,6 +614,12 @@ class OnboardingService
             }
             if (!in_array('bio', $columnNames)) {
                 $connection->statement("ALTER TABLE `users` ADD COLUMN `bio` text COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `job_title`");
+            }
+            if (!in_array('onboarding_questionnaire', $columnNames)) {
+                $connection->statement("ALTER TABLE `users` ADD COLUMN `onboarding_questionnaire` json DEFAULT NULL AFTER `bio`");
+            }
+            if (!in_array('onboarding_completed_at', $columnNames)) {
+                $connection->statement("ALTER TABLE `users` ADD COLUMN `onboarding_completed_at` timestamp NULL DEFAULT NULL AFTER `onboarding_questionnaire`");
             }
             
             // Créer la table activities

@@ -101,13 +101,14 @@
         <p style="margin: 0;">
             <strong>📧 Consultez votre boîte e-mail</strong><br>
             @if(isset($email))
-                <span style="color: #00286f;">{{ $email }}</span>
+                <span style="color: #00286f; font-weight: 600;">{{ $email }}</span>
             @else
                 Un lien d'activation vous a été envoyé par e-mail.
             @endif
         </p>
-        <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">
-            Cliquez sur le lien d'activation pour finaliser votre inscription et définir votre mot de passe.
+        <p style="margin: 15px 0 0 0; font-size: 15px; color: #333; line-height: 1.6;">
+            <strong>Pour créer votre mot de passe :</strong><br>
+            Cliquez sur le lien d'activation dans l'email que nous vous avons envoyé. Ce lien vous permettra de définir votre mot de passe et d'accéder à votre espace.
         </p>
     </div>
     

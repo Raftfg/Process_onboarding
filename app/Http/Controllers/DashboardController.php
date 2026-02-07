@@ -5,17 +5,23 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\OnboardingSession;
 use App\Services\DashboardService;
+use App\Services\ActivationService;
+use App\Mail\ActivationMail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class DashboardController extends Controller
 {
     protected $dashboardService;
+    protected $activationService;
 
-    public function __construct(DashboardService $dashboardService)
+    public function __construct(DashboardService $dashboardService, ActivationService $activationService)
     {
         $this->dashboardService = $dashboardService;
+        $this->activationService = $activationService;
     }
 
     public function index(Request $request)
@@ -201,5 +207,87 @@ class DashboardController extends Controller
             'activities' => $activities,
             'unreadCount' => $unreadCount,
         ]);
+    }
+
+    /**
+     * Renvoie l'email d'activation pour l'utilisateur connecté
+     */
+    public function resendActivationEmail(Request $request)
+    {
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Utilisateur non authentifié'
+            ], 401);
+        }
+
+        $user = Auth::user();
+        $email = $user->email;
+
+        // Récupérer le sous-domaine depuis le host
+        $host = $request->getHost();
+        $parts = explode('.', $host);
+        
+        if (config('app.env') === 'local' && count($parts) >= 2 && $parts[1] === 'localhost') {
+            $subdomain = $parts[0];
+        } elseif (count($parts) >= 3) {
+            $subdomain = $parts[0];
+        } else {
+            $subdomain = session('current_subdomain');
+        }
+
+        if (!$subdomain) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sous-domaine non trouvé'
+            ], 400);
+        }
+
+        try {
+            // Récupérer l'organisation depuis l'onboarding
+            Config::set('database.default', 'mysql');
+            DB::purge('tenant');
+            
+            $onboarding = OnboardingSession::on('mysql')
+                ->where('subdomain', $subdomain)
+                ->where('status', 'completed')
+                ->first();
+
+            $organizationName = $onboarding->organization_name ?? $onboarding->hospital_name ?? config('app.brand_name');
+
+            // Créer un nouveau token d'activation
+            $activationToken = $this->activationService->createActivationToken(
+                $email,
+                $organizationName,
+                $subdomain,
+                $onboarding->database_name ?? null
+            );
+
+            // Envoyer l'email
+            Mail::to($email)->send(
+                new ActivationMail($email, $organizationName, $activationToken)
+            );
+
+            Log::info('Email d\'activation renvoyé', [
+                'email' => $email,
+                'subdomain' => $subdomain,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Email d\'activation renvoyé avec succès'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors du renvoi de l\'email d\'activation: ' . $e->getMessage(), [
+                'email' => $email,
+                'subdomain' => $subdomain,
+                'exception' => get_class($e),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'envoi de l\'email: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

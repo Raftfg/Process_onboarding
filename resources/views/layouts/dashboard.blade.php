@@ -475,6 +475,107 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* Email Confirmation Alert */
+        .email-confirmation-alert {
+            background: #1a202c;
+            color: white;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert-content {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .alert-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .alert-message {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.5;
+            min-width: 200px;
+        }
+
+        .alert-message strong {
+            font-weight: 600;
+        }
+
+        .alert-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .btn-resend-email {
+            background: transparent;
+            color: #667eea;
+            border: none;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px 8px;
+            transition: color 0.2s;
+        }
+
+        .btn-resend-email:hover {
+            color: #5568d3;
+        }
+
+        .btn-resend-email:disabled {
+            color: #718096;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+
+        .btn-close-alert {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.7);
+            border: none;
+            font-size: 24px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .btn-close-alert:hover {
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .email-confirmation-alert {
+                padding: 12px 16px;
+            }
+
+            .alert-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .alert-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
     </style>
     
     @stack('styles')
@@ -488,7 +589,25 @@
             @include('dashboard.partials.header')
             
             <div class="content-area">
-                {{-- Alertes statiques supprimées au profit de SweetAlert2 --}}
+                {{-- Barre d'alerte pour confirmation email et création mot de passe --}}
+                @if(Auth::check() && Auth::user()->password_changed_at === null)
+                    <div class="email-confirmation-alert" id="emailConfirmationAlert">
+                        <div class="alert-content">
+                            <span class="alert-icon">📧</span>
+                            <span class="alert-message">
+                                N'oubliez pas de confirmer votre e-mail <strong>{{ Auth::user()->email }}</strong> en suivant le lien dans le message pour créer votre mot de passe.
+                            </span>
+                            <div class="alert-actions">
+                                <button class="btn-resend-email" id="btnResendEmail" onclick="resendActivationEmail()">
+                                    Renvoyer
+                                </button>
+                                <button class="btn-close-alert" onclick="dismissAlert()" title="Fermer">
+                                    ×
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
                 @yield('content')
             </div>
@@ -683,6 +802,7 @@
     
     <script>
         $(document).ready(function() {
+            // Afficher le modal de succès après la création du mot de passe
             @if(session('success'))
                 Swal.fire({
                     icon: 'success',
@@ -703,6 +823,79 @@
                 });
             @endif
         });
+
+        // Fonction pour renvoyer l'email d'activation
+        function resendActivationEmail() {
+            const btn = document.getElementById('btnResendEmail');
+            const originalText = btn.textContent;
+            
+            btn.disabled = true;
+            btn.textContent = 'Envoi...';
+
+            fetch('{{ route("dashboard.resend-activation-email") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    btn.textContent = 'Envoyé !';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                    }, 2000);
+                    
+                    // Afficher une notification de succès
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Email envoyé',
+                            text: 'Un nouvel email de confirmation a été envoyé à votre adresse.',
+                            confirmButtonColor: '#00286f',
+                            timer: 3000,
+                            timerProgressBar: true
+                        });
+                    }
+                } else {
+                    throw new Error(data.message || 'Erreur lors de l\'envoi');
+                }
+            })
+            .catch(error => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erreur',
+                        text: error.message || 'Une erreur est survenue lors de l\'envoi de l\'email.',
+                        confirmButtonColor: '#00286f'
+                    });
+                }
+            });
+        }
+
+        // Fonction pour fermer l'alerte
+        function dismissAlert() {
+            const alert = document.getElementById('emailConfirmationAlert');
+            if (alert) {
+                alert.style.display = 'none';
+                // Sauvegarder la préférence dans localStorage pour ne plus afficher pendant cette session
+                localStorage.setItem('email_alert_dismissed', 'true');
+            }
+        }
+
+        // Vérifier si l'alerte a été fermée précédemment
+        if (localStorage.getItem('email_alert_dismissed') === 'true') {
+            const alert = document.getElementById('emailConfirmationAlert');
+            if (alert) {
+                alert.style.display = 'none';
+            }
+        }
     </script>
     
     @stack('scripts')

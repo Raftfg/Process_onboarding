@@ -123,58 +123,17 @@
                 $('#message4').removeClass('inactive').addClass('active');
                 $('#progressFill').css('width', '100%');
                 
-                // Afficher une notification informant que l'espace a été créé
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Espace créé avec succès !',
-                    html: '<p>Votre espace <strong>' + (response.result.organization_name || '') + '</strong> a été créé.</p><p style="margin-top: 10px; font-size: 14px;">Un email vous a été envoyé à <strong>' + onboardingData.email + '</strong> pour définir votre mot de passe.</p><p style="margin-top: 10px; font-size: 14px;">Vous allez être redirigé vers votre dashboard...</p>',
-                    confirmButtonText: 'Accéder au dashboard',
-                    confirmButtonColor: '#00286f',
-                    allowOutsideClick: false,
-                    timer: 2000,
-                    timerProgressBar: true
-                }).then(() => {
-                    // Rediriger vers le dashboard avec le token d'authentification automatique
-                    redirectToDashboard(response.result);
-                });
+                // Rediriger vers la page de confirmation
+                redirectToConfirmation(response.result);
                 
-                // Redirection automatique après 2 secondes si l'utilisateur ne clique pas
-                setTimeout(function() {
-                    redirectToDashboard(response.result);
-                }, 2000);
-                
-                // Fonction pour rediriger vers le dashboard
-                function redirectToDashboard(result) {
-                    if (result && result.subdomain && result.auto_login_token) {
-                        const subdomain = result.subdomain;
-                        const autoLoginToken = result.auto_login_token;
-                        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                        const port = window.location.port || (isLocal ? '8000' : '');
-                        const protocol = window.location.protocol;
-                        
-                        if (isLocal) {
-                            window.location.href = `${protocol}//${subdomain}.localhost:${port}/dashboard?auto_login_token=${autoLoginToken}`;
-                        } else {
-                            const baseDomain = '{{ config("app.brand_domain") }}';
-                            window.location.href = `${protocol}//${subdomain}.${baseDomain}/dashboard?auto_login_token=${autoLoginToken}`;
-                        }
-                    } else if (result && result.subdomain) {
-                        // Fallback sans token (moins sécurisé mais fonctionnel)
-                        const subdomain = result.subdomain;
-                        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                        const port = window.location.port || (isLocal ? '8000' : '');
-                        const protocol = window.location.protocol;
-                        
-                        if (isLocal) {
-                            window.location.href = `${protocol}//${subdomain}.localhost:${port}/dashboard`;
-                        } else {
-                            const baseDomain = '{{ config("app.brand_domain") }}';
-                            window.location.href = `${protocol}//${subdomain}.${baseDomain}/dashboard`;
-                        }
-                    } else {
-                        // Fallback si pas de données dans la réponse
-                        window.location.href = '{{ route("onboarding.start") }}';
-                    }
+                // Fonction pour rediriger vers la page de confirmation
+                function redirectToConfirmation(result) {
+                    // Stocker les données en session pour la page de confirmation
+                    const email = onboardingData.email || '';
+                    const organizationName = result.organization_name || '';
+                    
+                    // Rediriger vers la page de confirmation avec les données
+                    window.location.href = '{{ route("onboarding.confirmation") }}';
                 }
             },
             error: function(xhr) {
