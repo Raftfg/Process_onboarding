@@ -15,6 +15,10 @@ use OpenApi\Attributes as OA;
     url: "http://localhost:8000",
     description: "Serveur de Développement Local"
 )]
+#[OA\Server(
+    url: "https://process-onboarding-main-v6bvar.laravel.cloud",
+    description: "Serveur de Production"
+)]
 #[OA\SecurityScheme(
     securityScheme: "MasterKey",
     type: "apiKey",

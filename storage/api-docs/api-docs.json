@@ -12,6 +12,10 @@
         {
             "url": "http://localhost:8000",
             "description": "Serveur de Développement Local"
+        },
+        {
+            "url": "https://process-onboarding-main-v6bvar.laravel.cloud",
+            "description": "Serveur de Production"
         }
     ],
     "paths": {
