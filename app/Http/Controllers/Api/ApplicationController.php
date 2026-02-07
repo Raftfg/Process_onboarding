@@ -96,6 +96,12 @@ class ApplicationController extends Controller
                 'display_name' => 'required|string|max:255',
                 'contact_email' => 'required|email|max:255',
                 'website' => 'nullable|url|max:255',
+            ], [
+                'app_name.unique' => 'Ce nom d\'application est déjà utilisé. Veuillez choisir un autre nom.',
+                'app_name.alpha_dash' => 'Le nom d\'application ne peut contenir que des lettres, chiffres, tirets et underscores.',
+                'app_name.max' => 'Le nom d\'application ne peut pas dépasser 50 caractères.',
+                'contact_email.email' => 'L\'adresse email n\'est pas valide.',
+                'website.url' => 'L\'URL du site web n\'est pas valide.',
             ]);
 
             // Vérifier que le nom d'application n'est pas réservé
