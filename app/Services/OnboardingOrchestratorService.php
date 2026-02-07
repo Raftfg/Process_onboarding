@@ -32,12 +32,8 @@ class OnboardingOrchestratorService
      */
     public function start(Application $application, string $email, ?string $organizationName = null): OnboardingRegistration
     {
-        // Vérifier que l'application possède bien une base centrale associée
-        if (!$application->hasDatabase()) {
-            throw new \RuntimeException('Aucune base de données associée à cette application. Enregistrez l\'application avant de démarrer un onboarding.');
-        }
-
-        $appDatabase = $application->appDatabase;
+        // Note: L'application n'a pas besoin d'avoir une base de données pour démarrer un onboarding
+        // La base de données du tenant sera créée lors du provisioning si nécessaire
 
         // Générer le nom d'organisation si non fourni
         if (empty($organizationName)) {
@@ -50,9 +46,10 @@ class OnboardingOrchestratorService
         $subdomain = $this->subdomainService->generateUniqueSubdomain($organizationName, $email);
 
         // Créer l'enregistrement central (statut pending, infra non configurée)
+        // Note: app_database_id est nullable car l'application n'a pas besoin d'avoir une base de données
         $registration = OnboardingRegistration::create([
             'application_id'   => $application->id,
-            'app_database_id'  => $appDatabase->id,
+            'app_database_id'  => null, // Pas nécessaire pour démarrer un onboarding
             'email'            => $email,
             'organization_name'=> $organizationName,
             'subdomain'        => $subdomain,

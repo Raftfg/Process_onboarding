@@ -76,8 +76,9 @@ Assurez-vous que votre serveur web ou votre DNS redirige `*.votre-domaine.com` v
 ### Enregistrement d'Application (Self-Service)
 ```
 POST /api/v1/applications/register
-→ Crée l'application et sa base de données
-→ Retourne : app_id, master_key, db_credentials
+→ Crée l'application (sans base de données)
+→ Retourne : app_id, master_key
+→ Note : Seule la master key est nécessaire pour démarrer un onboarding
 ```
 
 ### Onboarding (Avec master_key)

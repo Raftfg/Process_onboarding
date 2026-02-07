@@ -536,7 +536,7 @@
                     "Applications"
                 ],
                 "summary": "Enregistrer une nouvelle application cliente",
-                "description": "Permet à une application cliente de s'enregistrer et d'obtenir une master key pour utiliser l'API d'onboarding.",
+                "description": "Permet à une application cliente de s'enregistrer et d'obtenir une master key pour utiliser l'API d'onboarding. **Note importante** : L'enregistrement ne crée pas de base de données. Seule la master key est nécessaire pour démarrer un onboarding.",
                 "operationId": "521162b50f9214b60acb81fd4f73aaff",
                 "requestBody": {
                     "required": true,
@@ -609,15 +609,37 @@
                                                 },
                                                 "contact_email": {
                                                     "type": "string",
-                                                    "format": "email"
+                                                    "format": "email",
+                                                    "example": "dev@monapp.com"
                                                 },
-                                                "master_key": {
-                                                    "description": "⚠️ IMPORTANT: Stockez cette clé en sécurité, elle ne sera plus affichée",
+                                                "website": {
                                                     "type": "string",
-                                                    "example": "mk_live_xyz789..."
+                                                    "format": "uri",
+                                                    "example": "https://monapp.com",
+                                                    "nullable": true
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-02-07T10:30:00Z"
                                                 }
                                             },
                                             "type": "object"
+                                        },
+                                        "master_key": {
+                                            "description": "⚠️ IMPORTANT: Stockez cette clé en sécurité, elle ne sera plus jamais affichée. Utilisez-la dans le header X-Master-Key pour démarrer un onboarding.",
+                                            "type": "string",
+                                            "example": "mk_live_xyz789..."
+                                        },
+                                        "warnings": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "example": [
+                                                "⚠️ IMPORTANT: Sauvegardez la master_key immédiatement ! Elle ne sera plus jamais affichée.",
+                                                "💡 Vous pouvez maintenant utiliser cette master_key pour démarrer un onboarding avec POST /api/v1/onboarding/start"
+                                            ]
                                         }
                                     },
                                     "type": "object"

@@ -22,7 +22,7 @@ class ApplicationController extends Controller
     #[OA\Post(
         path: "/api/v1/applications/register",
         summary: "Enregistrer une nouvelle application cliente",
-        description: "Permet à une application cliente de s'enregistrer et d'obtenir une master key pour utiliser l'API d'onboarding.",
+        description: "Permet à une application cliente de s'enregistrer et d'obtenir une master key pour utiliser l'API d'onboarding. **Note importante** : L'enregistrement ne crée pas de base de données. Seule la master key est nécessaire pour démarrer un onboarding.",
         tags: ["Applications"],
         requestBody: new OA\RequestBody(
             required: true,
@@ -51,8 +51,19 @@ class ApplicationController extends Controller
                                 new OA\Property(property: "app_id", type: "string", example: "app_abc123"),
                                 new OA\Property(property: "app_name", type: "string", example: "mon-application"),
                                 new OA\Property(property: "display_name", type: "string", example: "Mon Application"),
-                                new OA\Property(property: "contact_email", type: "string", format: "email"),
-                                new OA\Property(property: "master_key", type: "string", example: "mk_live_xyz789...", description: "⚠️ IMPORTANT: Stockez cette clé en sécurité, elle ne sera plus affichée"),
+                                new OA\Property(property: "contact_email", type: "string", format: "email", example: "dev@monapp.com"),
+                                new OA\Property(property: "website", type: "string", format: "uri", nullable: true, example: "https://monapp.com"),
+                                new OA\Property(property: "created_at", type: "string", format: "date-time", example: "2026-02-07T10:30:00Z"),
+                            ]
+                        ),
+                        new OA\Property(property: "master_key", type: "string", example: "mk_live_xyz789...", description: "⚠️ IMPORTANT: Stockez cette clé en sécurité, elle ne sera plus jamais affichée. Utilisez-la dans le header X-Master-Key pour démarrer un onboarding."),
+                        new OA\Property(
+                            property: "warnings",
+                            type: "array",
+                            items: new OA\Items(type: "string"),
+                            example: [
+                                "⚠️ IMPORTANT: Sauvegardez la master_key immédiatement ! Elle ne sera plus jamais affichée.",
+                                "💡 Vous pouvez maintenant utiliser cette master_key pour démarrer un onboarding avec POST /api/v1/onboarding/start"
                             ]
                         ),
                     ]
@@ -112,31 +123,16 @@ class ApplicationController extends Controller
                 $validated['website'] ?? null
             );
 
-            // Créer la base de données pour cette application
-            $databaseCreated = false;
-            $dbResult = null;
-            $dbError = null;
-
-            try {
-                $dbResult = $this->databaseService->createApplicationDatabase(
-                    $result['id'],
-                    $validated['app_name']
-                );
-                $databaseCreated = true;
-            } catch (\Exception $dbException) {
-                $dbError = $dbException->getMessage();
-                Log::warning('Échec de la création de la base de données, mais application créée', [
-                    'app_id' => $result['app_id'],
-                    'error' => $dbError,
-                ]);
-            }
+            Log::info('Nouvelle application enregistrée', [
+                'app_id' => $result['app_id'],
+                'app_name' => $result['app_name'],
+                'ip' => $request->ip(),
+            ]);
 
             // Préparer la réponse
-            $response = [
+            return response()->json([
                 'success' => true,
-                'message' => $databaseCreated 
-                    ? 'Application enregistrée avec succès' 
-                    : 'Application enregistrée, mais la création de la base de données a échoué',
+                'message' => 'Application enregistrée avec succès',
                 'application' => [
                     'app_id' => $result['app_id'],
                     'app_name' => $result['app_name'],
@@ -148,37 +144,9 @@ class ApplicationController extends Controller
                 'master_key' => $result['master_key'],
                 'warnings' => [
                     '⚠️ IMPORTANT: Sauvegardez la master_key immédiatement ! Elle ne sera plus jamais affichée.',
+                    '💡 Vous pouvez maintenant utiliser cette master_key pour démarrer un onboarding avec POST /api/v1/onboarding/start',
                 ],
-            ];
-
-            if ($databaseCreated) {
-                $appDatabase = $dbResult['database'];
-                $plainPassword = $dbResult['plain_password'];
-                $connectionString = $this->databaseService->getConnectionString($appDatabase, $plainPassword);
-
-                $response['database'] = [
-                    'name' => $appDatabase->database_name,
-                    'host' => $appDatabase->db_host,
-                    'port' => $appDatabase->db_port,
-                    'username' => $appDatabase->db_username,
-                    'password' => $plainPassword, // Affiché une seule fois
-                    'connection_string' => $connectionString,
-                ];
-                $response['warnings'][] = '⚠️ IMPORTANT: Sauvegardez les credentials de la base de données ! Le mot de passe ne sera plus jamais affiché.';
-
-                Log::info('Nouvelle application enregistrée avec base de données', [
-                    'app_id' => $result['app_id'],
-                    'app_name' => $result['app_name'],
-                    'database_name' => $appDatabase->database_name,
-                    'ip' => $request->ip(),
-                ]);
-            } else {
-                $response['database'] = null;
-                $response['database_error'] = 'La création de la base de données a échoué. Vous pouvez réessayer avec POST /api/v1/applications/{app_id}/retry-database';
-                $response['warnings'][] = '⚠️ La base de données n\'a pas pu être créée. Réessayez plus tard ou contactez le support.';
-            }
-
-            return response()->json($response, $databaseCreated ? 201 : 207); // 207 = Multi-Status
+            ], 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([

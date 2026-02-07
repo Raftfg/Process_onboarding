@@ -86,11 +86,15 @@
     - `app_id`
     - `app_name`
     - `master_key` (via `X-Master-Key`) – **à garder secret**.
-- Savoir consommer une API REST JSON (HTTP client, n’importe quel langage).
+  - **Note importante** : 
+    - L'enregistrement d'application ne crée **pas** de base de données. 
+    - Seule la **master key** est nécessaire pour démarrer un onboarding.
+    - Aucune base de données n'est requise pour l'application cliente lors de l'enregistrement.
+- Savoir consommer une API REST JSON (HTTP client, n'importe quel langage).
 - Avoir une stratégie claire pour :
-  - créer les **bases de données** de tenants,
+  - créer les **bases de données** de tenants (côté application cliente),
   - nommer ces bases (par ex. préfixer par le `subdomain`),
-  - gérer les **e-mails** et l’activation.
+  - gérer les **e-mails** et l'activation.
 
 ### 3.2. Démarrage de l’onboarding
 
@@ -345,8 +349,9 @@ En cas de dépassement, vous recevrez un code `429 Too Many Requests` avec :
 ### Sécurité et authentification
 
 - Authentification via `X-Master-Key` :
-  - issue de `/api/v1/applications/register`,
-  - stockée côté serveur uniquement.
+  - obtenue via `/api/v1/applications/register` (sans création de base de données),
+  - seule la master key est nécessaire pour démarrer un onboarding,
+  - stockée côté serveur uniquement (hashée).
 - Secrets (`master_key`, `api_key`, `api_secret`) :
   - stockés **hashés** côté microservice,
   - transmis en clair **une seule fois**,
