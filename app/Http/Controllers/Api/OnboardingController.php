@@ -33,7 +33,7 @@ class OnboardingController extends Controller
     #[OA\Post(
         path: "/api/v1/onboarding/start",
         summary: "Démarrer un onboarding stateless",
-        description: "Crée un enregistrement d'onboarding dans la base centrale et génère un sous-domaine.",
+        description: "Crée un enregistrement d'onboarding dans la base centrale et génère un sous-domaine. **Note importante** : Aucune base de données n'est requise pour l'application cliente. Seule la master key est nécessaire.",
         tags: ["Onboarding Stateless"],
         security: [
             ["MasterKey" => []]

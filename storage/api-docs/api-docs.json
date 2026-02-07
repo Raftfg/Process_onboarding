@@ -648,7 +648,38 @@
                         }
                     },
                     "422": {
-                        "description": "Erreur de validation (nom déjà utilisé, format invalide, etc.)"
+                        "description": "Erreur de validation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Erreur de validation"
+                                        },
+                                        "errors": {
+                                            "properties": {
+                                                "app_name": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "example": [
+                                                        "Ce nom d'application est déjà utilisé. Veuillez choisir un autre nom."
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "429": {
                         "description": "Trop de tentatives d'enregistrement"
@@ -945,7 +976,7 @@
                     "Onboarding Stateless"
                 ],
                 "summary": "Démarrer un onboarding stateless",
-                "description": "Crée un enregistrement d'onboarding dans la base centrale et génère un sous-domaine.",
+                "description": "Crée un enregistrement d'onboarding dans la base centrale et génère un sous-domaine. **Note importante** : Aucune base de données n'est requise pour l'application cliente. Seule la master key est nécessaire.",
                 "operationId": "98832ff01ce791a7505c538049b16193",
                 "requestBody": {
                     "required": true,

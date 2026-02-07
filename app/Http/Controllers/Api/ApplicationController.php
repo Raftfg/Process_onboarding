@@ -69,7 +69,28 @@ class ApplicationController extends Controller
                     ]
                 )
             ),
-            new OA\Response(response: 422, description: "Erreur de validation (nom déjà utilisé, format invalide, etc.)"),
+            new OA\Response(
+                response: 422,
+                description: "Erreur de validation",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: false),
+                        new OA\Property(property: "message", type: "string", example: "Erreur de validation"),
+                        new OA\Property(
+                            property: "errors",
+                            type: "object",
+                            properties: [
+                                new OA\Property(
+                                    property: "app_name",
+                                    type: "array",
+                                    items: new OA\Items(type: "string"),
+                                    example: ["Ce nom d'application est déjà utilisé. Veuillez choisir un autre nom."]
+                                ),
+                            ]
+                        ),
+                    ]
+                )
+            ),
             new OA\Response(response: 429, description: "Trop de tentatives d'enregistrement"),
         ]
     )]
