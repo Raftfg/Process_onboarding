@@ -8,6 +8,7 @@ use App\Services\DatabaseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use OpenApi\Attributes as OA;
 
 class ApplicationController extends Controller
 {
@@ -18,6 +19,49 @@ class ApplicationController extends Controller
         $this->databaseService = $databaseService;
     }
 
+    #[OA\Post(
+        path: "/api/v1/applications/register",
+        summary: "Enregistrer une nouvelle application cliente",
+        description: "Permet à une application cliente de s'enregistrer et d'obtenir une master key pour utiliser l'API d'onboarding.",
+        tags: ["Applications"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["app_name", "display_name", "contact_email"],
+                properties: [
+                    new OA\Property(property: "app_name", type: "string", example: "mon-application", description: "Nom unique de l'application (alphanumérique et tirets uniquement)"),
+                    new OA\Property(property: "display_name", type: "string", example: "Mon Application", description: "Nom d'affichage de l'application"),
+                    new OA\Property(property: "contact_email", type: "string", format: "email", example: "dev@monapp.com", description: "Email de contact pour l'application"),
+                    new OA\Property(property: "website", type: "string", format: "uri", nullable: true, example: "https://monapp.com", description: "Site web de l'application (optionnel)"),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: "Application enregistrée avec succès",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Application enregistrée avec succès"),
+                        new OA\Property(
+                            property: "application",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "app_id", type: "string", example: "app_abc123"),
+                                new OA\Property(property: "app_name", type: "string", example: "mon-application"),
+                                new OA\Property(property: "display_name", type: "string", example: "Mon Application"),
+                                new OA\Property(property: "contact_email", type: "string", format: "email"),
+                                new OA\Property(property: "master_key", type: "string", example: "mk_live_xyz789...", description: "⚠️ IMPORTANT: Stockez cette clé en sécurité, elle ne sera plus affichée"),
+                            ]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 422, description: "Erreur de validation (nom déjà utilisé, format invalide, etc.)"),
+            new OA\Response(response: 429, description: "Trop de tentatives d'enregistrement"),
+        ]
+    )]
     /**
      * Enregistre une nouvelle application (publique, sans authentification)
      * 
@@ -154,6 +198,51 @@ class ApplicationController extends Controller
         }
     }
 
+    #[OA\Get(
+        path: "/api/v1/applications/{app_id}",
+        summary: "Récupérer les informations d'une application",
+        description: "Retourne les détails de l'application (nom, email, statut, dates).",
+        tags: ["Applications"],
+        security: [
+            ["MasterKey" => []]
+        ],
+        parameters: [
+            new OA\Parameter(
+                name: "app_id",
+                in: "path",
+                required: true,
+                description: "ID de l'application",
+                schema: new OA\Schema(type: "string", example: "app_abc123")
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Informations de l'application",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(
+                            property: "application",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "app_id", type: "string", example: "app_abc123"),
+                                new OA\Property(property: "app_name", type: "string", example: "mon-application"),
+                                new OA\Property(property: "display_name", type: "string", example: "Mon Application"),
+                                new OA\Property(property: "contact_email", type: "string", format: "email"),
+                                new OA\Property(property: "website", type: "string", format: "uri", nullable: true),
+                                new OA\Property(property: "is_active", type: "boolean", example: true),
+                                new OA\Property(property: "created_at", type: "string", format: "date-time"),
+                                new OA\Property(property: "last_used_at", type: "string", format: "date-time", nullable: true),
+                            ]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: "Master key invalide ou absente"),
+            new OA\Response(response: 404, description: "Application non trouvée"),
+        ]
+    )]
     /**
      * Récupère les informations d'une application (avec master_key)
      * 
@@ -179,6 +268,58 @@ class ApplicationController extends Controller
         ]);
     }
 
+    #[OA\Post(
+        path: "/api/v1/applications/{app_id}/retry-database",
+        summary: "Réessayer la création de la base de données",
+        description: "Tente de créer la base de données pour une application qui n'en a pas encore. Utile si la création initiale a échoué.",
+        tags: ["Applications"],
+        security: [
+            ["MasterKey" => []]
+        ],
+        parameters: [
+            new OA\Parameter(
+                name: "app_id",
+                in: "path",
+                required: true,
+                description: "ID de l'application",
+                schema: new OA\Schema(type: "string", example: "app_abc123")
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: "Base de données créée avec succès",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Base de données créée avec succès"),
+                        new OA\Property(
+                            property: "database",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "name", type: "string", example: "app_monapp_db"),
+                                new OA\Property(property: "host", type: "string", example: "localhost"),
+                                new OA\Property(property: "port", type: "integer", example: 3306),
+                                new OA\Property(property: "username", type: "string", example: "app_monapp_user"),
+                                new OA\Property(property: "password", type: "string", example: "secure_password", description: "⚠️ Affiché une seule fois"),
+                                new OA\Property(property: "connection_string", type: "string", example: "mysql://user:pass@host:port/dbname"),
+                            ]
+                        ),
+                        new OA\Property(
+                            property: "warnings",
+                            type: "array",
+                            items: new OA\Items(type: "string"),
+                            example: ["⚠️ IMPORTANT: Sauvegardez les credentials de la base de données !"]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 400, description: "L'application a déjà une base de données"),
+            new OA\Response(response: 401, description: "Master key invalide ou absente"),
+            new OA\Response(response: 404, description: "Application non trouvée"),
+            new OA\Response(response: 500, description: "Erreur lors de la création de la base de données"),
+        ]
+    )]
     /**
      * Réessaie la création de la base de données pour une application existante
      * 
@@ -248,6 +389,51 @@ class ApplicationController extends Controller
         }
     }
 
+    #[OA\Post(
+        path: "/api/v1/applications/regenerate-master-key",
+        summary: "Régénérer la master key",
+        description: "Génère une nouvelle master key pour une application existante. L'ancienne master key devient immédiatement invalide. Vérifie l'identité via app_name + contact_email.",
+        tags: ["Applications"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["app_name", "contact_email"],
+                properties: [
+                    new OA\Property(property: "app_name", type: "string", example: "mon-application", description: "Nom unique de l'application"),
+                    new OA\Property(property: "contact_email", type: "string", format: "email", example: "dev@monapp.com", description: "Email de contact enregistré"),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Master key régénérée avec succès",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Master key régénérée avec succès"),
+                        new OA\Property(
+                            property: "application",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "app_id", type: "string", example: "app_abc123"),
+                                new OA\Property(property: "app_name", type: "string", example: "mon-application"),
+                            ]
+                        ),
+                        new OA\Property(property: "master_key", type: "string", example: "mk_live_xyz789...", description: "⚠️ IMPORTANT: Sauvegardez immédiatement, elle ne sera plus affichée"),
+                        new OA\Property(
+                            property: "warnings",
+                            type: "array",
+                            items: new OA\Items(type: "string"),
+                            example: ["⚠️ IMPORTANT: Sauvegardez la nouvelle master_key immédiatement !", "⚠️ L'ancienne master_key est maintenant invalide."]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: "Aucune application trouvée avec ce nom et cet email"),
+            new OA\Response(response: 422, description: "Erreur de validation"),
+        ]
+    )]
     /**
      * Régénère le master_key pour une application existante (vérification par email)
      * 

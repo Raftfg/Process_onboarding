@@ -57,9 +57,24 @@ class OnboardingController extends Controller
                         new OA\Property(property: "success", type: "boolean", example: true),
                         new OA\Property(property: "uuid", type: "string", format: "uuid"),
                         new OA\Property(property: "subdomain", type: "string", example: "clinique-du-lac"),
+                        new OA\Property(property: "full_domain", type: "string", example: "clinique-du-lac.akasigroup.local"),
+                        new OA\Property(property: "url", type: "string", format: "uri", example: "https://clinique-du-lac.akasigroup.local"),
                         new OA\Property(property: "email", type: "string", format: "email"),
                         new OA\Property(property: "organization_name", type: "string", nullable: true),
                         new OA\Property(property: "onboarding_status", type: "string", example: "pending"),
+                        new OA\Property(
+                            property: "metadata",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "created_at", type: "string", format: "date-time"),
+                                new OA\Property(property: "updated_at", type: "string", format: "date-time"),
+                                new OA\Property(property: "dns_configured", type: "boolean", example: false),
+                                new OA\Property(property: "ssl_configured", type: "boolean", example: false),
+                                new OA\Property(property: "infrastructure_status", type: "string", example: "pending"),
+                                new OA\Property(property: "api_key_generated", type: "boolean", example: false),
+                                new OA\Property(property: "provisioning_attempts", type: "integer", example: 0),
+                            ]
+                        ),
                     ]
                 )
             ),
@@ -162,11 +177,27 @@ class OnboardingController extends Controller
                         new OA\Property(property: "success", type: "boolean", example: true),
                         new OA\Property(property: "uuid", type: "string", format: "uuid"),
                         new OA\Property(property: "subdomain", type: "string", example: "clinique-du-lac"),
+                        new OA\Property(property: "full_domain", type: "string", example: "clinique-du-lac.akasigroup.local"),
+                        new OA\Property(property: "url", type: "string", format: "uri", example: "https://clinique-du-lac.akasigroup.local"),
                         new OA\Property(property: "email", type: "string", format: "email"),
                         new OA\Property(property: "organization_name", type: "string", nullable: true),
                         new OA\Property(property: "onboarding_status", type: "string", example: "activated"),
                         new OA\Property(property: "api_key", type: "string", nullable: true, example: "ak_abc123..."),
                         new OA\Property(property: "api_secret", type: "string", nullable: true, example: "ak_abc123..."),
+                        new OA\Property(
+                            property: "metadata",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "created_at", type: "string", format: "date-time"),
+                                new OA\Property(property: "updated_at", type: "string", format: "date-time"),
+                                new OA\Property(property: "dns_configured", type: "boolean", example: true),
+                                new OA\Property(property: "ssl_configured", type: "boolean", example: true),
+                                new OA\Property(property: "infrastructure_status", type: "string", example: "ready"),
+                                new OA\Property(property: "api_key_generated", type: "boolean", example: true),
+                                new OA\Property(property: "provisioning_attempts", type: "integer", example: 1),
+                                new OA\Property(property: "is_idempotent", type: "boolean", example: false),
+                            ]
+                        ),
                     ]
                 )
             ),
@@ -283,11 +314,26 @@ class OnboardingController extends Controller
                         new OA\Property(property: "success", type: "boolean", example: true),
                         new OA\Property(property: "uuid", type: "string", format: "uuid"),
                         new OA\Property(property: "subdomain", type: "string", example: "clinique-du-lac"),
+                        new OA\Property(property: "full_domain", type: "string", example: "clinique-du-lac.akasigroup.local"),
+                        new OA\Property(property: "url", type: "string", format: "uri", example: "https://clinique-du-lac.akasigroup.local"),
                         new OA\Property(property: "email", type: "string", format: "email"),
                         new OA\Property(property: "organization_name", type: "string", nullable: true),
                         new OA\Property(property: "onboarding_status", type: "string", example: "activated"),
                         new OA\Property(property: "dns_configured", type: "boolean", example: true),
                         new OA\Property(property: "ssl_configured", type: "boolean", example: true),
+                        new OA\Property(
+                            property: "metadata",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "created_at", type: "string", format: "date-time"),
+                                new OA\Property(property: "updated_at", type: "string", format: "date-time"),
+                                new OA\Property(property: "dns_configured", type: "boolean", example: true),
+                                new OA\Property(property: "ssl_configured", type: "boolean", example: true),
+                                new OA\Property(property: "infrastructure_status", type: "string", example: "ready"),
+                                new OA\Property(property: "api_key_generated", type: "boolean", example: true),
+                                new OA\Property(property: "provisioning_attempts", type: "integer", example: 1),
+                            ]
+                        ),
                     ]
                 )
             ),

@@ -7,9 +7,59 @@ use App\Models\ApiKey;
 use App\Models\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use OpenApi\Attributes as OA;
 
 class ApiKeyManagementController extends Controller
 {
+    #[OA\Get(
+        path: "/api/v1/applications/{app_id}/api-keys",
+        summary: "Lister les clés API",
+        description: "Retourne la liste de toutes les clés API créées par l'application.",
+        tags: ["Gestion des Clés API"],
+        security: [
+            ["MasterKey" => []]
+        ],
+        parameters: [
+            new OA\Parameter(
+                name: "app_id",
+                in: "path",
+                required: true,
+                description: "ID de l'application",
+                schema: new OA\Schema(type: "string", example: "app_abc123")
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Liste des clés API",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(
+                            property: "api_keys",
+                            type: "array",
+                            items: new OA\Items(
+                                type: "object",
+                                properties: [
+                                    new OA\Property(property: "id", type: "integer", example: 1),
+                                    new OA\Property(property: "name", type: "string", example: "Production Key"),
+                                    new OA\Property(property: "key_prefix", type: "string", example: "ak_live_abc..."),
+                                    new OA\Property(property: "app_name", type: "string", example: "mon-application"),
+                                    new OA\Property(property: "is_active", type: "boolean", example: true),
+                                    new OA\Property(property: "rate_limit", type: "integer", example: 100),
+                                    new OA\Property(property: "expires_at", type: "string", format: "date-time", nullable: true),
+                                    new OA\Property(property: "last_used_at", type: "string", format: "date-time", nullable: true),
+                                    new OA\Property(property: "created_at", type: "string", format: "date-time"),
+                                ]
+                            )
+                        ),
+                        new OA\Property(property: "count", type: "integer", example: 3),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: "Master key invalide ou absente"),
+        ]
+    )]
     /**
      * Liste toutes les clés API d'une application
      * 
@@ -43,6 +93,65 @@ class ApiKeyManagementController extends Controller
         ]);
     }
 
+    #[OA\Post(
+        path: "/api/v1/applications/{app_id}/api-keys",
+        summary: "Créer une nouvelle clé API",
+        description: "Génère une nouvelle clé API avec un nom personnalisé, des limites de taux et une date d'expiration optionnelle.",
+        tags: ["Gestion des Clés API"],
+        security: [
+            ["MasterKey" => []]
+        ],
+        parameters: [
+            new OA\Parameter(
+                name: "app_id",
+                in: "path",
+                required: true,
+                description: "ID de l'application",
+                schema: new OA\Schema(type: "string", example: "app_abc123")
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["name"],
+                properties: [
+                    new OA\Property(property: "name", type: "string", example: "Production Key", description: "Nom de la clé API"),
+                    new OA\Property(property: "rate_limit", type: "integer", nullable: true, example: 1000, description: "Limite de requêtes par minute (1-10000)"),
+                    new OA\Property(property: "expires_at", type: "string", format: "date-time", nullable: true, example: "2026-12-31T23:59:59Z", description: "Date d'expiration (optionnel)"),
+                    new OA\Property(property: "api_config", type: "object", nullable: true, description: "Configuration personnalisée (optionnel)"),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: "Clé API créée avec succès",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Clé API créée avec succès"),
+                        new OA\Property(
+                            property: "api_key",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "id", type: "integer", example: 1),
+                                new OA\Property(property: "key", type: "string", example: "ak_live_xyz789...", description: "⚠️ Affiché une seule fois"),
+                                new OA\Property(property: "key_prefix", type: "string", example: "ak_live_abc..."),
+                                new OA\Property(property: "name", type: "string", example: "Production Key"),
+                                new OA\Property(property: "app_name", type: "string", example: "mon-application"),
+                                new OA\Property(property: "rate_limit", type: "integer", example: 1000),
+                                new OA\Property(property: "expires_at", type: "string", format: "date-time", nullable: true),
+                            ]
+                        ),
+                        new OA\Property(property: "warning", type: "string", example: "⚠️ IMPORTANT: Sauvegardez cette clé immédiatement !"),
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: "L'application ne peut pas créer de clés API"),
+            new OA\Response(response: 422, description: "Erreur de validation"),
+            new OA\Response(response: 401, description: "Master key invalide ou absente"),
+        ]
+    )]
     /**
      * Crée une nouvelle clé API pour une application
      * 
@@ -117,6 +226,60 @@ class ApiKeyManagementController extends Controller
         }
     }
 
+    #[OA\Get(
+        path: "/api/v1/applications/{app_id}/api-keys/{key_id}",
+        summary: "Récupérer les détails d'une clé API",
+        description: "Retourne les informations détaillées d'une clé API spécifique, incluant sa configuration.",
+        tags: ["Gestion des Clés API"],
+        security: [
+            ["MasterKey" => []]
+        ],
+        parameters: [
+            new OA\Parameter(
+                name: "app_id",
+                in: "path",
+                required: true,
+                description: "ID de l'application",
+                schema: new OA\Schema(type: "string", example: "app_abc123")
+            ),
+            new OA\Parameter(
+                name: "key_id",
+                in: "path",
+                required: true,
+                description: "ID de la clé API",
+                schema: new OA\Schema(type: "integer", example: 1)
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Détails de la clé API",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(
+                            property: "api_key",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "id", type: "integer", example: 1),
+                                new OA\Property(property: "name", type: "string", example: "Production Key"),
+                                new OA\Property(property: "key_prefix", type: "string", example: "ak_live_abc..."),
+                                new OA\Property(property: "app_name", type: "string", example: "mon-application"),
+                                new OA\Property(property: "is_active", type: "boolean", example: true),
+                                new OA\Property(property: "rate_limit", type: "integer", example: 1000),
+                                new OA\Property(property: "expires_at", type: "string", format: "date-time", nullable: true),
+                                new OA\Property(property: "last_used_at", type: "string", format: "date-time", nullable: true),
+                                new OA\Property(property: "created_at", type: "string", format: "date-time"),
+                                new OA\Property(property: "api_config", type: "object", description: "Configuration de la clé"),
+                            ]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: "Clé API introuvable"),
+            new OA\Response(response: 401, description: "Master key invalide ou absente"),
+        ]
+    )]
     /**
      * Récupère les détails d'une clé API
      * 
@@ -152,6 +315,57 @@ class ApiKeyManagementController extends Controller
         ]);
     }
 
+    #[OA\Put(
+        path: "/api/v1/applications/{app_id}/api-keys/{key_id}/config",
+        summary: "Configurer une clé API",
+        description: "Met à jour la configuration d'une clé API (validation, stratégie de génération de noms, etc.).",
+        tags: ["Gestion des Clés API"],
+        security: [
+            ["MasterKey" => []]
+        ],
+        parameters: [
+            new OA\Parameter(
+                name: "app_id",
+                in: "path",
+                required: true,
+                description: "ID de l'application",
+                schema: new OA\Schema(type: "string", example: "app_abc123")
+            ),
+            new OA\Parameter(
+                name: "key_id",
+                in: "path",
+                required: true,
+                description: "ID de la clé API",
+                schema: new OA\Schema(type: "integer", example: 1)
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: false,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "require_organization_name", type: "boolean", nullable: true, example: false, description: "Exiger le nom d'organisation"),
+                    new OA\Property(property: "organization_name_generation_strategy", type: "string", nullable: true, enum: ["auto", "email", "timestamp", "metadata", "custom"], example: "email", description: "Stratégie de génération du nom"),
+                    new OA\Property(property: "organization_name_template", type: "string", nullable: true, example: "Org-{email}", description: "Template personnalisé (si stratégie = custom)"),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Configuration mise à jour",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Configuration mise à jour avec succès"),
+                        new OA\Property(property: "api_config", type: "object", description: "Nouvelle configuration"),
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: "Clé API introuvable"),
+            new OA\Response(response: 422, description: "Erreur de validation"),
+            new OA\Response(response: 401, description: "Master key invalide ou absente"),
+        ]
+    )]
     /**
      * Met à jour la configuration d'une clé API
      * 
@@ -226,6 +440,45 @@ class ApiKeyManagementController extends Controller
         }
     }
 
+    #[OA\Delete(
+        path: "/api/v1/applications/{app_id}/api-keys/{key_id}",
+        summary: "Révoquer une clé API",
+        description: "Désactive une clé API. La clé devient immédiatement inutilisable. Utile pour la sécurité en cas de compromission.",
+        tags: ["Gestion des Clés API"],
+        security: [
+            ["MasterKey" => []]
+        ],
+        parameters: [
+            new OA\Parameter(
+                name: "app_id",
+                in: "path",
+                required: true,
+                description: "ID de l'application",
+                schema: new OA\Schema(type: "string", example: "app_abc123")
+            ),
+            new OA\Parameter(
+                name: "key_id",
+                in: "path",
+                required: true,
+                description: "ID de la clé API à révoquer",
+                schema: new OA\Schema(type: "integer", example: 1)
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Clé API révoquée avec succès",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Clé API révoquée avec succès"),
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: "Clé API introuvable"),
+            new OA\Response(response: 401, description: "Master key invalide ou absente"),
+        ]
+    )]
     /**
      * Révoque (désactive) une clé API
      * 

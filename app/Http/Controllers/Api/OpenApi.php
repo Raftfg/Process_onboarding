@@ -22,6 +22,13 @@ use OpenApi\Attributes as OA;
     name: "X-Master-Key",
     description: "Master key de votre application cliente, obtenue via /api/v1/applications/register"
 )]
+#[OA\SecurityScheme(
+    securityScheme: "ApiKey",
+    type: "apiKey",
+    in: "header",
+    name: "X-API-Key",
+    description: "Clé API générée via /api/v1/applications/{app_id}/api-keys"
+)]
 class OpenApi extends Controller
 {
 }

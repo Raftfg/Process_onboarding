@@ -15,6 +15,904 @@
         }
     ],
     "paths": {
+        "/api/v1/applications/{app_id}/api-keys": {
+            "get": {
+                "tags": [
+                    "Gestion des Clés API"
+                ],
+                "summary": "Lister les clés API",
+                "description": "Retourne la liste de toutes les clés API créées par l'application.",
+                "operationId": "03c587afa5f93efcdfdd54f5a848f245",
+                "parameters": [
+                    {
+                        "name": "app_id",
+                        "in": "path",
+                        "description": "ID de l'application",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "app_abc123"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste des clés API",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "api_keys": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Production Key"
+                                                    },
+                                                    "key_prefix": {
+                                                        "type": "string",
+                                                        "example": "ak_live_abc..."
+                                                    },
+                                                    "app_name": {
+                                                        "type": "string",
+                                                        "example": "mon-application"
+                                                    },
+                                                    "is_active": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "rate_limit": {
+                                                        "type": "integer",
+                                                        "example": 100
+                                                    },
+                                                    "expires_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "nullable": true
+                                                    },
+                                                    "last_used_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "nullable": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 3
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Master key invalide ou absente"
+                    }
+                },
+                "security": [
+                    {
+                        "MasterKey": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Gestion des Clés API"
+                ],
+                "summary": "Créer une nouvelle clé API",
+                "description": "Génère une nouvelle clé API avec un nom personnalisé, des limites de taux et une date d'expiration optionnelle.",
+                "operationId": "7d9961df4bf3e0facc3ccc8d3d76694f",
+                "parameters": [
+                    {
+                        "name": "app_id",
+                        "in": "path",
+                        "description": "ID de l'application",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "app_abc123"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "description": "Nom de la clé API",
+                                        "type": "string",
+                                        "example": "Production Key"
+                                    },
+                                    "rate_limit": {
+                                        "description": "Limite de requêtes par minute (1-10000)",
+                                        "type": "integer",
+                                        "example": 1000,
+                                        "nullable": true
+                                    },
+                                    "expires_at": {
+                                        "description": "Date d'expiration (optionnel)",
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2026-12-31T23:59:59Z",
+                                        "nullable": true
+                                    },
+                                    "api_config": {
+                                        "description": "Configuration personnalisée (optionnel)",
+                                        "type": "object",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Clé API créée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Clé API créée avec succès"
+                                        },
+                                        "api_key": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "key": {
+                                                    "description": "⚠️ Affiché une seule fois",
+                                                    "type": "string",
+                                                    "example": "ak_live_xyz789..."
+                                                },
+                                                "key_prefix": {
+                                                    "type": "string",
+                                                    "example": "ak_live_abc..."
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Production Key"
+                                                },
+                                                "app_name": {
+                                                    "type": "string",
+                                                    "example": "mon-application"
+                                                },
+                                                "rate_limit": {
+                                                    "type": "integer",
+                                                    "example": 1000
+                                                },
+                                                "expires_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "warning": {
+                                            "type": "string",
+                                            "example": "⚠️ IMPORTANT: Sauvegardez cette clé immédiatement !"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "L'application ne peut pas créer de clés API"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    },
+                    "401": {
+                        "description": "Master key invalide ou absente"
+                    }
+                },
+                "security": [
+                    {
+                        "MasterKey": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/applications/{app_id}/api-keys/{key_id}": {
+            "get": {
+                "tags": [
+                    "Gestion des Clés API"
+                ],
+                "summary": "Récupérer les détails d'une clé API",
+                "description": "Retourne les informations détaillées d'une clé API spécifique, incluant sa configuration.",
+                "operationId": "7029dc7b4e93430fd2cf632aa3b318e1",
+                "parameters": [
+                    {
+                        "name": "app_id",
+                        "in": "path",
+                        "description": "ID de l'application",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "app_abc123"
+                        }
+                    },
+                    {
+                        "name": "key_id",
+                        "in": "path",
+                        "description": "ID de la clé API",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détails de la clé API",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "api_key": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Production Key"
+                                                },
+                                                "key_prefix": {
+                                                    "type": "string",
+                                                    "example": "ak_live_abc..."
+                                                },
+                                                "app_name": {
+                                                    "type": "string",
+                                                    "example": "mon-application"
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "rate_limit": {
+                                                    "type": "integer",
+                                                    "example": 1000
+                                                },
+                                                "expires_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "nullable": true
+                                                },
+                                                "last_used_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "nullable": true
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "api_config": {
+                                                    "description": "Configuration de la clé",
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Clé API introuvable"
+                    },
+                    "401": {
+                        "description": "Master key invalide ou absente"
+                    }
+                },
+                "security": [
+                    {
+                        "MasterKey": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Gestion des Clés API"
+                ],
+                "summary": "Révoquer une clé API",
+                "description": "Désactive une clé API. La clé devient immédiatement inutilisable. Utile pour la sécurité en cas de compromission.",
+                "operationId": "040161c06d87b2a4060433ad14ea6a37",
+                "parameters": [
+                    {
+                        "name": "app_id",
+                        "in": "path",
+                        "description": "ID de l'application",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "app_abc123"
+                        }
+                    },
+                    {
+                        "name": "key_id",
+                        "in": "path",
+                        "description": "ID de la clé API à révoquer",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Clé API révoquée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Clé API révoquée avec succès"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Clé API introuvable"
+                    },
+                    "401": {
+                        "description": "Master key invalide ou absente"
+                    }
+                },
+                "security": [
+                    {
+                        "MasterKey": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/applications/{app_id}/api-keys/{key_id}/config": {
+            "put": {
+                "tags": [
+                    "Gestion des Clés API"
+                ],
+                "summary": "Configurer une clé API",
+                "description": "Met à jour la configuration d'une clé API (validation, stratégie de génération de noms, etc.).",
+                "operationId": "ea3b074b06734b1f10742f1c7bb031a4",
+                "parameters": [
+                    {
+                        "name": "app_id",
+                        "in": "path",
+                        "description": "ID de l'application",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "app_abc123"
+                        }
+                    },
+                    {
+                        "name": "key_id",
+                        "in": "path",
+                        "description": "ID de la clé API",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "require_organization_name": {
+                                        "description": "Exiger le nom d'organisation",
+                                        "type": "boolean",
+                                        "example": false,
+                                        "nullable": true
+                                    },
+                                    "organization_name_generation_strategy": {
+                                        "description": "Stratégie de génération du nom",
+                                        "type": "string",
+                                        "enum": [
+                                            "auto",
+                                            "email",
+                                            "timestamp",
+                                            "metadata",
+                                            "custom"
+                                        ],
+                                        "example": "email",
+                                        "nullable": true
+                                    },
+                                    "organization_name_template": {
+                                        "description": "Template personnalisé (si stratégie = custom)",
+                                        "type": "string",
+                                        "example": "Org-{email}",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Configuration mise à jour",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Configuration mise à jour avec succès"
+                                        },
+                                        "api_config": {
+                                            "description": "Nouvelle configuration",
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Clé API introuvable"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    },
+                    "401": {
+                        "description": "Master key invalide ou absente"
+                    }
+                },
+                "security": [
+                    {
+                        "MasterKey": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/applications/register": {
+            "post": {
+                "tags": [
+                    "Applications"
+                ],
+                "summary": "Enregistrer une nouvelle application cliente",
+                "description": "Permet à une application cliente de s'enregistrer et d'obtenir une master key pour utiliser l'API d'onboarding.",
+                "operationId": "521162b50f9214b60acb81fd4f73aaff",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "app_name",
+                                    "display_name",
+                                    "contact_email"
+                                ],
+                                "properties": {
+                                    "app_name": {
+                                        "description": "Nom unique de l'application (alphanumérique et tirets uniquement)",
+                                        "type": "string",
+                                        "example": "mon-application"
+                                    },
+                                    "display_name": {
+                                        "description": "Nom d'affichage de l'application",
+                                        "type": "string",
+                                        "example": "Mon Application"
+                                    },
+                                    "contact_email": {
+                                        "description": "Email de contact pour l'application",
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "dev@monapp.com"
+                                    },
+                                    "website": {
+                                        "description": "Site web de l'application (optionnel)",
+                                        "type": "string",
+                                        "format": "uri",
+                                        "example": "https://monapp.com",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Application enregistrée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Application enregistrée avec succès"
+                                        },
+                                        "application": {
+                                            "properties": {
+                                                "app_id": {
+                                                    "type": "string",
+                                                    "example": "app_abc123"
+                                                },
+                                                "app_name": {
+                                                    "type": "string",
+                                                    "example": "mon-application"
+                                                },
+                                                "display_name": {
+                                                    "type": "string",
+                                                    "example": "Mon Application"
+                                                },
+                                                "contact_email": {
+                                                    "type": "string",
+                                                    "format": "email"
+                                                },
+                                                "master_key": {
+                                                    "description": "⚠️ IMPORTANT: Stockez cette clé en sécurité, elle ne sera plus affichée",
+                                                    "type": "string",
+                                                    "example": "mk_live_xyz789..."
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erreur de validation (nom déjà utilisé, format invalide, etc.)"
+                    },
+                    "429": {
+                        "description": "Trop de tentatives d'enregistrement"
+                    }
+                }
+            }
+        },
+        "/api/v1/applications/{app_id}": {
+            "get": {
+                "tags": [
+                    "Applications"
+                ],
+                "summary": "Récupérer les informations d'une application",
+                "description": "Retourne les détails de l'application (nom, email, statut, dates).",
+                "operationId": "9d669eb55df718651f5367344821bd57",
+                "parameters": [
+                    {
+                        "name": "app_id",
+                        "in": "path",
+                        "description": "ID de l'application",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "app_abc123"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informations de l'application",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "application": {
+                                            "properties": {
+                                                "app_id": {
+                                                    "type": "string",
+                                                    "example": "app_abc123"
+                                                },
+                                                "app_name": {
+                                                    "type": "string",
+                                                    "example": "mon-application"
+                                                },
+                                                "display_name": {
+                                                    "type": "string",
+                                                    "example": "Mon Application"
+                                                },
+                                                "contact_email": {
+                                                    "type": "string",
+                                                    "format": "email"
+                                                },
+                                                "website": {
+                                                    "type": "string",
+                                                    "format": "uri",
+                                                    "nullable": true
+                                                },
+                                                "is_active": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "last_used_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Master key invalide ou absente"
+                    },
+                    "404": {
+                        "description": "Application non trouvée"
+                    }
+                },
+                "security": [
+                    {
+                        "MasterKey": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/applications/{app_id}/retry-database": {
+            "post": {
+                "tags": [
+                    "Applications"
+                ],
+                "summary": "Réessayer la création de la base de données",
+                "description": "Tente de créer la base de données pour une application qui n'en a pas encore. Utile si la création initiale a échoué.",
+                "operationId": "ada17faefa4f19db5bded3d68e4bc38b",
+                "parameters": [
+                    {
+                        "name": "app_id",
+                        "in": "path",
+                        "description": "ID de l'application",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "app_abc123"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Base de données créée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Base de données créée avec succès"
+                                        },
+                                        "database": {
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "app_monapp_db"
+                                                },
+                                                "host": {
+                                                    "type": "string",
+                                                    "example": "localhost"
+                                                },
+                                                "port": {
+                                                    "type": "integer",
+                                                    "example": 3306
+                                                },
+                                                "username": {
+                                                    "type": "string",
+                                                    "example": "app_monapp_user"
+                                                },
+                                                "password": {
+                                                    "description": "⚠️ Affiché une seule fois",
+                                                    "type": "string",
+                                                    "example": "secure_password"
+                                                },
+                                                "connection_string": {
+                                                    "type": "string",
+                                                    "example": "mysql://user:pass@host:port/dbname"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "warnings": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "example": [
+                                                "⚠️ IMPORTANT: Sauvegardez les credentials de la base de données !"
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "L'application a déjà une base de données"
+                    },
+                    "401": {
+                        "description": "Master key invalide ou absente"
+                    },
+                    "404": {
+                        "description": "Application non trouvée"
+                    },
+                    "500": {
+                        "description": "Erreur lors de la création de la base de données"
+                    }
+                },
+                "security": [
+                    {
+                        "MasterKey": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/applications/regenerate-master-key": {
+            "post": {
+                "tags": [
+                    "Applications"
+                ],
+                "summary": "Régénérer la master key",
+                "description": "Génère une nouvelle master key pour une application existante. L'ancienne master key devient immédiatement invalide. Vérifie l'identité via app_name + contact_email.",
+                "operationId": "d7bfb0f9943d7e0dc1e04bea21eeb8c2",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "app_name",
+                                    "contact_email"
+                                ],
+                                "properties": {
+                                    "app_name": {
+                                        "description": "Nom unique de l'application",
+                                        "type": "string",
+                                        "example": "mon-application"
+                                    },
+                                    "contact_email": {
+                                        "description": "Email de contact enregistré",
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "dev@monapp.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Master key régénérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Master key régénérée avec succès"
+                                        },
+                                        "application": {
+                                            "properties": {
+                                                "app_id": {
+                                                    "type": "string",
+                                                    "example": "app_abc123"
+                                                },
+                                                "app_name": {
+                                                    "type": "string",
+                                                    "example": "mon-application"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "master_key": {
+                                            "description": "⚠️ IMPORTANT: Sauvegardez immédiatement, elle ne sera plus affichée",
+                                            "type": "string",
+                                            "example": "mk_live_xyz789..."
+                                        },
+                                        "warnings": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "example": [
+                                                "⚠️ IMPORTANT: Sauvegardez la nouvelle master_key immédiatement !",
+                                                "⚠️ L'ancienne master_key est maintenant invalide."
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Aucune application trouvée avec ce nom et cet email"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
+                }
+            }
+        },
         "/api/v1/onboarding/start": {
             "post": {
                 "tags": [
@@ -67,6 +965,15 @@
                                             "type": "string",
                                             "example": "clinique-du-lac"
                                         },
+                                        "full_domain": {
+                                            "type": "string",
+                                            "example": "clinique-du-lac.akasigroup.local"
+                                        },
+                                        "url": {
+                                            "type": "string",
+                                            "format": "uri",
+                                            "example": "https://clinique-du-lac.akasigroup.local"
+                                        },
                                         "email": {
                                             "type": "string",
                                             "format": "email"
@@ -78,6 +985,39 @@
                                         "onboarding_status": {
                                             "type": "string",
                                             "example": "pending"
+                                        },
+                                        "metadata": {
+                                            "properties": {
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "dns_configured": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "ssl_configured": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "infrastructure_status": {
+                                                    "type": "string",
+                                                    "example": "pending"
+                                                },
+                                                "api_key_generated": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "provisioning_attempts": {
+                                                    "type": "integer",
+                                                    "example": 0
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -153,6 +1093,15 @@
                                             "type": "string",
                                             "example": "clinique-du-lac"
                                         },
+                                        "full_domain": {
+                                            "type": "string",
+                                            "example": "clinique-du-lac.akasigroup.local"
+                                        },
+                                        "url": {
+                                            "type": "string",
+                                            "format": "uri",
+                                            "example": "https://clinique-du-lac.akasigroup.local"
+                                        },
                                         "email": {
                                             "type": "string",
                                             "format": "email"
@@ -174,6 +1123,43 @@
                                             "type": "string",
                                             "example": "ak_abc123...",
                                             "nullable": true
+                                        },
+                                        "metadata": {
+                                            "properties": {
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "dns_configured": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "ssl_configured": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "infrastructure_status": {
+                                                    "type": "string",
+                                                    "example": "ready"
+                                                },
+                                                "api_key_generated": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "provisioning_attempts": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "is_idempotent": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -240,6 +1226,15 @@
                                             "type": "string",
                                             "example": "clinique-du-lac"
                                         },
+                                        "full_domain": {
+                                            "type": "string",
+                                            "example": "clinique-du-lac.akasigroup.local"
+                                        },
+                                        "url": {
+                                            "type": "string",
+                                            "format": "uri",
+                                            "example": "https://clinique-du-lac.akasigroup.local"
+                                        },
                                         "email": {
                                             "type": "string",
                                             "format": "email"
@@ -259,6 +1254,39 @@
                                         "ssl_configured": {
                                             "type": "boolean",
                                             "example": true
+                                        },
+                                        "metadata": {
+                                            "properties": {
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "dns_configured": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "ssl_configured": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "infrastructure_status": {
+                                                    "type": "string",
+                                                    "example": "ready"
+                                                },
+                                                "api_key_generated": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "provisioning_attempts": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -279,6 +1307,390 @@
                 "security": [
                     {
                         "MasterKey": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/onboarding/{uuid}/complete": {
+            "post": {
+                "tags": [
+                    "Onboarding Stateless"
+                ],
+                "summary": "Marquer un onboarding comme complété",
+                "description": "Permet à l'application cliente de signaler qu'elle a terminé la création du tenant et que l'onboarding est complété.",
+                "operationId": "8b710da6fe88f4caa075a99b03300d17",
+                "parameters": [
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "description": "UUID retourné par /onboarding/start",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "tenant_id": {
+                                        "description": "ID du tenant créé côté application cliente",
+                                        "type": "string",
+                                        "example": "tenant_123",
+                                        "nullable": true
+                                    },
+                                    "metadata": {
+                                        "description": "Métadonnées supplémentaires sur le tenant créé",
+                                        "type": "object",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Onboarding marqué comme complété",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Onboarding marqué comme complété"
+                                        },
+                                        "uuid": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "onboarding_status": {
+                                            "type": "string",
+                                            "example": "completed"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Onboarding introuvable pour cette application"
+                    },
+                    "401": {
+                        "description": "Master key invalide ou absente"
+                    },
+                    "422": {
+                        "description": "Onboarding déjà complété ou statut invalide"
+                    }
+                },
+                "security": [
+                    {
+                        "MasterKey": []
+                    }
+                ]
+            }
+        },
+        "/api/webhooks/register": {
+            "post": {
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Enregistrer un webhook",
+                "description": "Enregistre une URL qui recevra des notifications automatiques lors d'événements d'onboarding.",
+                "operationId": "3327efb80281af7bb8a3e629b029cf47",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "url",
+                                    "events"
+                                ],
+                                "properties": {
+                                    "url": {
+                                        "description": "URL qui recevra les notifications",
+                                        "type": "string",
+                                        "format": "uri",
+                                        "example": "https://monapp.com/webhooks/onboarding"
+                                    },
+                                    "events": {
+                                        "description": "Événements à écouter",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "enum": [
+                                                "onboarding.completed",
+                                                "onboarding.failed",
+                                                "test"
+                                            ]
+                                        },
+                                        "example": [
+                                            "onboarding.completed",
+                                            "onboarding.failed"
+                                        ]
+                                    },
+                                    "api_key_id": {
+                                        "description": "ID de la clé API associée (optionnel)",
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
+                                    },
+                                    "timeout": {
+                                        "description": "Timeout en secondes (5-120, défaut: 30)",
+                                        "type": "integer",
+                                        "example": 30,
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Webhook enregistré avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "url": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "events": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "secret": {
+                                                    "description": "⚠️ Secret pour vérifier les signatures, à sauvegarder",
+                                                    "type": "string",
+                                                    "example": "secret_xyz789..."
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Erreur de validation"
+                    },
+                    "401": {
+                        "description": "Clé API invalide ou absente"
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKey": []
+                    }
+                ]
+            }
+        },
+        "/api/webhooks": {
+            "get": {
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Lister les webhooks",
+                "description": "Retourne la liste de tous les webhooks enregistrés. Peut être filtré par api_key_id.",
+                "operationId": "1a299a76b509e657e8ca5466334a62a6",
+                "parameters": [
+                    {
+                        "name": "api_key_id",
+                        "in": "query",
+                        "description": "Filtrer par ID de clé API",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste des webhooks",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "url": {
+                                                        "type": "string",
+                                                        "format": "uri"
+                                                    },
+                                                    "events": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "is_active": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "last_triggered_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "nullable": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Clé API invalide ou absente"
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKey": []
+                    }
+                ]
+            }
+        },
+        "/api/webhooks/{id}": {
+            "delete": {
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Désactiver un webhook",
+                "description": "Désactive un webhook. Il ne recevra plus de notifications.",
+                "operationId": "c38ca564a3b7a57fb292968af2bbc812",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID du webhook",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Webhook désactivé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Webhook désactivé avec succès"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Webhook non trouvé"
+                    },
+                    "401": {
+                        "description": "Clé API invalide ou absente"
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKey": []
+                    }
+                ]
+            }
+        },
+        "/api/webhooks/test": {
+            "post": {
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Tester les webhooks",
+                "description": "Déclenche un événement de test vers tous les webhooks actifs. Utile pour vérifier que votre endpoint reçoit bien les notifications.",
+                "operationId": "916bbb556037bd89c68885c8a5db700d",
+                "responses": {
+                    "200": {
+                        "description": "Webhooks de test déclenchés",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Webhooks de test déclenchés"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Clé API invalide ou absente"
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKey": []
                     }
                 ]
             }
@@ -342,6 +1754,12 @@
                 "description": "Master key de votre application cliente, obtenue via /api/v1/applications/register",
                 "name": "X-Master-Key",
                 "in": "header"
+            },
+            "ApiKey": {
+                "type": "apiKey",
+                "description": "Clé API générée via /api/v1/applications/{app_id}/api-keys",
+                "name": "X-API-Key",
+                "in": "header"
             }
         }
     },
@@ -349,6 +1767,18 @@
         {
             "name": "Onboarding Stateless",
             "description": "Flux d'onboarding stateless basé sur uuid + sous-domaine. L'application cliente reste propriétaire du tenant métier."
+        },
+        {
+            "name": "Gestion des Clés API",
+            "description": "Gestion des Clés API"
+        },
+        {
+            "name": "Applications",
+            "description": "Applications"
+        },
+        {
+            "name": "Webhooks",
+            "description": "Webhooks"
         }
     ]
 }

@@ -18,8 +18,57 @@ class WebhookController extends Controller
         $this->webhookService = $webhookService;
     }
 
-    // Documentation Swagger de cet endpoint retirée de la spec publique
-
+    #[OA\Post(
+        path: "/api/webhooks/register",
+        summary: "Enregistrer un webhook",
+        description: "Enregistre une URL qui recevra des notifications automatiques lors d'événements d'onboarding.",
+        tags: ["Webhooks"],
+        security: [
+            ["ApiKey" => []]
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["url", "events"],
+                properties: [
+                    new OA\Property(property: "url", type: "string", format: "uri", example: "https://monapp.com/webhooks/onboarding", description: "URL qui recevra les notifications"),
+                    new OA\Property(
+                        property: "events",
+                        type: "array",
+                        items: new OA\Items(type: "string", enum: ["onboarding.completed", "onboarding.failed", "test"]),
+                        example: ["onboarding.completed", "onboarding.failed"],
+                        description: "Événements à écouter"
+                    ),
+                    new OA\Property(property: "api_key_id", type: "integer", nullable: true, example: 1, description: "ID de la clé API associée (optionnel)"),
+                    new OA\Property(property: "timeout", type: "integer", nullable: true, example: 30, description: "Timeout en secondes (5-120, défaut: 30)"),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: "Webhook enregistré avec succès",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(
+                            property: "data",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "id", type: "integer", example: 1),
+                                new OA\Property(property: "url", type: "string", format: "uri"),
+                                new OA\Property(property: "events", type: "array", items: new OA\Items(type: "string")),
+                                new OA\Property(property: "secret", type: "string", example: "secret_xyz789...", description: "⚠️ Secret pour vérifier les signatures, à sauvegarder"),
+                                new OA\Property(property: "created_at", type: "string", format: "date-time"),
+                            ]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 400, description: "Erreur de validation"),
+            new OA\Response(response: 401, description: "Clé API invalide ou absente"),
+        ]
+    )]
     /**
      * Enregistrer un nouveau webhook
      * 
@@ -70,6 +119,51 @@ class WebhookController extends Controller
         }
     }
 
+    #[OA\Get(
+        path: "/api/webhooks",
+        summary: "Lister les webhooks",
+        description: "Retourne la liste de tous les webhooks enregistrés. Peut être filtré par api_key_id.",
+        tags: ["Webhooks"],
+        security: [
+            ["ApiKey" => []]
+        ],
+        parameters: [
+            new OA\Parameter(
+                name: "api_key_id",
+                in: "query",
+                required: false,
+                description: "Filtrer par ID de clé API",
+                schema: new OA\Schema(type: "integer", example: 1)
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Liste des webhooks",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(
+                            property: "data",
+                            type: "array",
+                            items: new OA\Items(
+                                type: "object",
+                                properties: [
+                                    new OA\Property(property: "id", type: "integer", example: 1),
+                                    new OA\Property(property: "url", type: "string", format: "uri"),
+                                    new OA\Property(property: "events", type: "array", items: new OA\Items(type: "string")),
+                                    new OA\Property(property: "is_active", type: "boolean", example: true),
+                                    new OA\Property(property: "last_triggered_at", type: "string", format: "date-time", nullable: true),
+                                    new OA\Property(property: "created_at", type: "string", format: "date-time"),
+                                ]
+                            )
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: "Clé API invalide ou absente"),
+        ]
+    )]
     /**
      * Lister les webhooks
      * 
@@ -100,6 +194,38 @@ class WebhookController extends Controller
         ]);
     }
 
+    #[OA\Delete(
+        path: "/api/webhooks/{id}",
+        summary: "Désactiver un webhook",
+        description: "Désactive un webhook. Il ne recevra plus de notifications.",
+        tags: ["Webhooks"],
+        security: [
+            ["ApiKey" => []]
+        ],
+        parameters: [
+            new OA\Parameter(
+                name: "id",
+                in: "path",
+                required: true,
+                description: "ID du webhook",
+                schema: new OA\Schema(type: "integer", example: 1)
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Webhook désactivé avec succès",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Webhook désactivé avec succès"),
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: "Webhook non trouvé"),
+            new OA\Response(response: 401, description: "Clé API invalide ou absente"),
+        ]
+    )]
     /**
      * Désactiver un webhook
      * 
@@ -124,6 +250,28 @@ class WebhookController extends Controller
         ]);
     }
 
+    #[OA\Post(
+        path: "/api/webhooks/test",
+        summary: "Tester les webhooks",
+        description: "Déclenche un événement de test vers tous les webhooks actifs. Utile pour vérifier que votre endpoint reçoit bien les notifications.",
+        tags: ["Webhooks"],
+        security: [
+            ["ApiKey" => []]
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Webhooks de test déclenchés",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Webhooks de test déclenchés"),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: "Clé API invalide ou absente"),
+        ]
+    )]
     /**
      * Déclencher un webhook de test
      * 
